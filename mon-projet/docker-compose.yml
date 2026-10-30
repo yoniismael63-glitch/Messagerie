@@ -1,0 +1,108 @@
+# ==============================================================================
+# Orchestration souveraine Matrix / Synapse pour l'Administration Publique
+# Contexte : Hackathon Sécurité - Déploiement "One-Command"
+# ==============================================================================
+# Architecture réseau :
+#   - Seul NGINX expose un port vers l'hôte (port 80 ou ${WEB_PORT}).
+#   - PostgreSQL (db) est strictement cantonné au réseau privé Docker 'matrix_internal'.
+#   - Synapse communique uniquement avec NGINX et PostgreSQL.
+#   - Fédération Matrix désactivée, Inscription libre désactivée.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Base de données relationnelle PostgreSQL
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Synapse exige une collation C et un encodage UTF-8 pour les index Matrix
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks:
+      - matrix_internal
+    # SÉCURITÉ : Aucun port n'est mappé vers l'hôte pour PostgreSQL !
+
+  # ----------------------------------------------------------------------------
+  # 2. Serveur Homeserver Matrix Synapse
+  # ----------------------------------------------------------------------------
+  synapse:
+    # Tag officiel stable documenté : matrixdotorg/synapse:v1.125.0
+    image: matrixdotorg/synapse:v1.125.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/synapse_bootstrap/entrypoint.sh"]
+    environment:
+      SERVER_NAME: ${SERVER_NAME}
+      BASE_URL: ${BASE_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      SYNAPSE_REGISTRATION_SHARED_SECRET: ${SYNAPSE_REGISTRATION_SHARED_SECRET}
+      SYNAPSE_MACAROON_SECRET_KEY: ${SYNAPSE_MACAROON_SECRET_KEY}
+      SYNAPSE_FORM_SECRET: ${SYNAPSE_FORM_SECRET}
+    volumes:
+      - synapse_data:/data
+      - ./synapse/homeserver.yaml.template:/synapse_bootstrap/homeserver.yaml.template:ro
+      - ./synapse/entrypoint.sh:/synapse_bootstrap/entrypoint.sh:ro
+    networks:
+      - matrix_internal
+    # Synapse écoute sur le port 8008 uniquement au sein du réseau Docker 'matrix_internal'.
+
+  # ----------------------------------------------------------------------------
+  # 3. Client Web Officiel Element
+  # ----------------------------------------------------------------------------
+  element:
+    # Tag officiel stable documenté : vectorim/element-web:v1.11.94
+    image: vectorim/element-web:v1.11.94
+    restart: unless-stopped
+    volumes:
+      - ./element/config.json:/app/config.json:ro
+    networks:
+      - matrix_internal
+    # Fichiers statiques servis en interne à NGINX.
+
+  # ----------------------------------------------------------------------------
+  # 4. Reverse Proxy Nginx - Point d'entrée unique de la souveraineté
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - synapse
+      - element
+    networks:
+      - matrix_internal
+
+# ------------------------------------------------------------------------------
+# Volumes persistants isolés
+# ------------------------------------------------------------------------------
+volumes:
+  db_data:
+    driver: local
+  synapse_data:
+    driver: local
+
+# ------------------------------------------------------------------------------
+# Réseau Docker interne dédié (isolation des composants)
+# ------------------------------------------------------------------------------
+networks:
+  matrix_internal:
+    driver: bridge

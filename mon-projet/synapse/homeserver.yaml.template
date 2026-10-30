@@ -1,0 +1,97 @@
+# ==============================================================================
+# Modèle de configuration Synapse - Homeserver Souverain
+# Contexte : Administration Publique du Burkina Faso
+# ==============================================================================
+# Ce template est transformé au démarrage par 'entrypoint.sh' en '/data/homeserver.yaml'.
+# Les variables ${VAR} sont injectées depuis l'environnement sans fuite de secrets.
+# ==============================================================================
+
+# Nom de domaine de référence du serveur Matrix
+server_name: "${SERVER_NAME}"
+
+# URL publique annoncée pour les redirections et les clients
+public_baseurl: "${BASE_URL}/"
+
+# Fichier de verrouillage PID
+pid_file: /data/homeserver.pid
+
+# ------------------------------------------------------------------------------
+# Écouteurs HTTP internes (derrière le reverse proxy NGINX)
+# ------------------------------------------------------------------------------
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    bind_addresses: ['0.0.0.0']
+    resources:
+      - names: [client, federation]
+        compress: false
+
+# ------------------------------------------------------------------------------
+# Connexion PostgreSQL (aucun SQLite autorisé en production/sécurité)
+# ------------------------------------------------------------------------------
+database:
+  name: psycopg2
+  args:
+    user: ${POSTGRES_USER}
+    password: "${POSTGRES_PASSWORD}"
+    database: ${POSTGRES_DB}
+    host: db
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+
+# ------------------------------------------------------------------------------
+# Stockage des fichiers multimédias et clé cryptographique du serveur
+# ------------------------------------------------------------------------------
+media_store_path: /data/media_store
+signing_key_path: /data/${SERVER_NAME}.signing.key
+
+# ------------------------------------------------------------------------------
+# RÈGLE ÉLIMINATOIRE 1 : Isolation souveraine & Désactivation de la fédération
+# ------------------------------------------------------------------------------
+# Interdit toute communication avec des serveurs Matrix étrangers ou hors réseau national
+allow_federation: false
+
+# Interdit toute requête sortante vers un serveur de clés externe (ex: matrix.org)
+trusted_key_servers: []
+
+# Supprime l'avertissement de Synapse relatif à l'absence de serveurs de clés publics
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#trusted_key_servers
+suppress_key_server_warning: true
+
+# ------------------------------------------------------------------------------
+# RÈGLE ÉLIMINATOIRE 2 : Identité contrôlée & Inscription publique désactivée
+# ------------------------------------------------------------------------------
+# Les agents ne peuvent pas s'inscrire eux-mêmes : seul un enrôlement admin est autorisé
+enable_registration: false
+enable_registration_without_verification: false
+
+# Clé secrète partagée utilisée par les scripts d'enrôlement autorisés
+registration_shared_secret: "${SYNAPSE_REGISTRATION_SHARED_SECRET}"
+
+# ------------------------------------------------------------------------------
+# RÈGLE ÉLIMINATOIRE 3 : Secrets cryptographiques de session et formulaire
+# ------------------------------------------------------------------------------
+macaroon_secret_key: "${SYNAPSE_MACAROON_SECRET_KEY}"
+form_secret: "${SYNAPSE_FORM_SECRET}"
+
+# ------------------------------------------------------------------------------
+# RÈGLE ÉLIMINATOIRE 4 : Minimisation des métadonnées et chiffrement par défaut
+# ------------------------------------------------------------------------------
+# Force l'activation du chiffrement de bout en bout (Megolm) pour tout nouveau salon
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#encryption_for_new_rooms
+encryption_for_new_rooms: "encrypted"
+
+# Désactive le suivi de présence en temps réel pour réduire drastiquement l'empreinte de métadonnées
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#presence
+presence:
+  enabled: false
+
+# Désactive les aperçus d'URL (empêche le serveur de requêter des liens arbitraires sur le Web)
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#url_preview_enabled
+url_preview_enabled: false
+
+# Emplacement des logs Synapse
+log_config: "/synapse_bootstrap/log.config" # À VÉRIFIER (Optionnel : si omis, Synapse logue sur stdout par défaut selon https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#logging)

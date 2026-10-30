@@ -1,0 +1,26 @@
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "http://localhost",
+      "server_name": "localhost"
+    },
+    "m.identity_server": {
+      "base_url": ""
+    }
+  },
+  "brand": "FasoMatrix - Administration Publique du Burkina Faso",
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "disable_3pid_login": true,
+  "default_theme": "dark",
+  "show_labs_settings": false,
+  "room_directory": {
+    "servers": []
+  },
+  "features": {
+    "feature_spotlight": false
+  },
+  "setting_defaults": {
+    "breadcrumbs": true
+  }
+}

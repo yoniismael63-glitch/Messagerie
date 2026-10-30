@@ -1,0 +1,6 @@
+{
+  "name": "FasoMatrix - Messagerie Souveraine",
+  "description": "Socle DevOps et intégration Matrix Synapse / Element pour l'administration publique du Burkina Faso. Chiffrement de bout en bout, souveraineté et zéro fédération.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
