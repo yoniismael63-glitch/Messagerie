@@ -1,5 +1,5 @@
 # FasoMatrix - Socle DevOps de Messagerie Instantanée Souveraine
-## Système Dédié à l'Administration Publique du Burkina Faso
+## Système Dédié à l'Administration Publique du Burkina Faso (Jour 1)
 
 ---
 
@@ -8,7 +8,7 @@
 **FasoMatrix** est une infrastructure de messagerie instantanée régalienne et souveraine, conçue pour éliminer toute dépendance technologique étrangère ou hébergée sur des clouds tiers non maîtrisés.
 
 Les piliers fondamentaux sont :
-- **Chiffrement de bout en bout (E2EE) irréversible** : Fondé sur les protocoles cryptographiques formellement audités **Olm** (Double Ratchet) et **Megolm** via le standard ouvert Matrix. Aucune cryptographie maison.
+- **Chiffrement de bout en bout (E2EE) irréversible** : Fondé sur les protocoles cryptographiques formellement audités **Olm** (Double Ratchet) et **Megolm** (`m.megolm.v1.aes-sha2`) via le standard ouvert Matrix. Aucune cryptographie maison.
 - **Hébergement souverain étanche** : Déploiement automatisé "en une commande" sur n'importe quel serveur physique ou machine virtuelle souveraine hébergée sur le territoire national.
 - **Régime d'identité contrôlée** : Inscription publique rigoureusement interdite (`enable_registration: false`). Seuls des fonctionnaires ou agents préalablement enrôlés par l'autorité de sécurité peuvent accéder au réseau.
 - **Fédération coupée** : Isolement complet (`allow_federation: false`). Les messages et clés ne franchissent jamais les frontières de l'infrastructure étatique.
@@ -104,54 +104,164 @@ docker compose logs -f synapse
 
 ### 7. Création des comptes de démonstration
 
-Exécutez le script d'enrôlement sécurisé :
+Exécutez le script d'enrôlement sécurisé adapté à votre système :
+
+**Sur Linux / macOS (Bash) :**
 ```bash
 chmod +x scripts/*.sh
 ./scripts/seed_demo.sh
 ```
 
+**Sur Windows (PowerShell) :**
+```powershell
+.\scripts\seed_demo.ps1
+```
+*(Si une politique d'exécution bloque le script : `powershell -ExecutionPolicy Bypass -File .\scripts\seed_demo.ps1`)*
+
 Ce script effectue automatiquement :
-- L'enregistrement de l'administrateur de sécurité (`admin_faso`)
-- L'enregistrement des deux agents (`agent_secu_1` et `agent_secu_2`)
-- La génération d'un salon confidentiel chiffré (`m.megolm.v1.aes-sha256`)
+- L'attente de disponibilité complète de Synapse
+- L'enregistrement de l'administrateur (`admin`)
+- L'enregistrement des deux agents (`agent1` et `agent2`)
+- La création d'un salon explicitement chiffré (`m.megolm.v1.aes-sha2`)
+- La validation formelle par requête GET que l'état de chiffrement est actif
 - L'invitation des agents dans ce salon
 
-Accédez ensuite à l'application web dans votre navigateur sur : **`http://localhost`**
+---
+
+### 8. Procédure de test manuel E2EE (Validation Jour 1)
+
+Suivez exactement les étapes ci-dessous pour valider l'étanchéité du chiffrement devant le jury :
+
+1. S'assurer que `docker compose up -d` est lancé et que `http://localhost` répond.
+2. Ouvrir `http://localhost` dans une fenêtre de navigation normale.
+3. Se connecter avec `agent1` (identifiant `agent1`, mot de passe défini dans `.env`).
+4. Ouvrir `http://localhost` dans une fenêtre de navigation privée.
+5. Se connecter avec `agent2`.
+6. Dans les deux fenêtres, accepter l'invitation au salon de démonstration « Cellule Souveraine - Démo Jour 1 ».
+7. Vérifier que le salon affiche un cadenas vert ou une mention « chiffré ».
+8. Envoyer un message depuis `agent1` (par exemple : `TopSecretBurkina2026`), et vérifier sa réception en clair côté `agent2`.
+9. **Preuve 1 : Vérifier l'absence de texte clair dans les logs Synapse :**
+   - **Linux / macOS :**
+     ```bash
+     docker compose logs synapse | grep -i "TopSecretBurkina2026"
+     ```
+   - **Windows PowerShell :**
+     ```powershell
+     docker compose logs synapse | Select-String "TopSecretBurkina2026"
+     ```
+   *Résultat attendu : AUCUN résultat (la commande ne retourne rien).*
+
+10. **Preuve 2 : Vérifier l'absence de texte clair dans la base PostgreSQL :**
+    ```bash
+    docker compose exec db psql -U synapse_admin -d synapse_db -c "SELECT json FROM event_json WHERE json LIKE '%TopSecretBurkina2026%';"
+    ```
+    *Résultat attendu : `(0 rows)` — preuve mathématique que la base de données ne contient que le ciphertext chiffré en Megolm.*
+
+11. **Avertissement de sécurité fondamental :**
+    L'URL doit impérativement être `http://localhost` et non `http://<IP>` pour que l'API de cryptographie du navigateur (WebCrypto) fonctionne et que le chiffrement Element soit actif en l'absence de certificat TLS.
 
 ---
 
-### 8. Test de la révocation immédiate
+### 9. Gestion des Identités et des Rôles (Jour 2)
 
-Pour révoquer immédiatement l'accès d'un agent déchu ou compromis :
+#### A. Création d'un agent
+L'inscription autonome étant fermée (`enable_registration: false`), un agent est enrôlé unilatéralement par l'autorité :
+- **En ligne de commande interne :**
+  ```bash
+  docker compose exec -T synapse register_new_matrix_user -u agent3 -p "MotDePasseFort_24B" --no-admin -c /data/homeserver.yaml
+  ```
+- **Ou via le script de seed :** `./scripts/seed_demo.sh` ou `.\scripts\seed_demo.ps1`.
+
+#### B. Promotion d'un agent au rôle d'administrateur
+Pour promouvoir un agent opérationnel au rang d'administrateur serveur (`admin: true`) :
+- **Sur Linux / macOS :**
+  ```bash
+  ./scripts/promote_admin.sh @agent1:localhost
+  ```
+- **Sur Windows (PowerShell) :**
+  ```powershell
+  .\scripts\promote_admin.ps1 -User "@agent1:localhost"
+  ```
+
+#### C. Rétrogradation d'un administrateur
+Pour retirer les privilèges d'administration (`admin: false`) :
+- **Sur Windows (PowerShell) :**
+  ```powershell
+  .\scripts\promote_admin.ps1 -User "@agent1:localhost" -Demote
+  ```
+*Règle de sécurité stricte :* Un administrateur ne peut pas se rétrograder lui-même. La commande doit être exécutée avec le jeton d'un autre compte administrateur.
+
+---
+
+### 10. Procédure de Test de Révocation Multi-Appareils (Validation Jour 2)
+
+Cette épreuve éliminatoire prouve que la révocation coupe **tous les terminaux connectés simultanément** d'un agent :
+
+1. **Établir deux sessions simultanées pour `agent1` :**
+   - Ouvrir `http://localhost` dans un navigateur normal (Session 1 de `agent1`).
+   - Ouvrir `http://localhost` dans une fenêtre de navigation privée (Session 2 de `agent1`).
+   - Se connecter avec les identifiants de `agent1` dans les deux fenêtres.
+2. **Confirmer la réception multi-appareils :**
+   - Depuis un autre navigateur connecté avec `agent2`, envoyer un message dans le salon chiffré.
+   - Constater que les deux fenêtres de `agent1` reçoivent bien le message.
+3. **Exécuter la révocation immédiate :**
+   - **Sur Linux / macOS :**
+     ```bash
+     ./scripts/revoke_user.sh @agent1:localhost
+     ```
+   - **Sur Windows (PowerShell) :**
+     ```powershell
+     .\scripts\revoke_user.ps1 -User "@agent1:localhost"
+     ```
+   Le script affiche le nombre exact d'appareils supprimés (ex : *2 appareils supprimés, 0 restant*).
+4. **Constat contradictoire en direct :**
+   - Les **DEUX fenêtres** de `agent1` sont instantanément verrouillées et déconnectées.
+   - Toute tentative de reconnexion avec le mot de passe de `agent1` renvoie l'erreur `M_USER_DEACTIVATED`.
+
+---
+
+### 11. Vérification Contradictoire de l'Absence de Texte Clair (Jour 2)
+
+Exécutez le script d'audit contradictoire pour prouver au jury qu'aucun message n'est lisible sur l'infrastructure :
+
+**Sur Linux / macOS :**
 ```bash
-./scripts/revoke_user.sh @agent_secu_1:localhost
+./scripts/verify_no_cleartext.sh "TopSecretBurkina2026"
 ```
 
-**Effet garanti :**
-- L'agent est immédiatement expulsé de sa session Element.
-- Tous ses jetons d'accès (access tokens) sont invalidés.
-- Toute tentative de reconnexion est bloquée avec le code Matrix `M_USER_DEACTIVATED`.
+**Sur Windows (PowerShell) :**
+```powershell
+.\scripts\verify_no_cleartext.ps1 -SearchText "TopSecretBurkina2026"
+```
+
+*Comportement garanti :*
+- Le script inspecte tous les logs Synapse via `docker compose logs synapse`.
+- Le script interroge directement les tables `events` et `event_json` dans PostgreSQL via `docker compose exec db psql`.
+- Affiche **« OK : aucun clair trouvé »** (code de sortie 0) ou **« ÉCHEC : clair détecté »** (code 1).
 
 ---
 
-### 9. Ce que le serveur voit et ne voit pas
+### 12. Ce que le serveur voit et ne voit pas
 
-#### Ce que le serveur Synapse et l'administrateur système VOIENT :
-- L'identifiant des comptes (`@agent_secu_1:localhost`).
-- L'heure exacte d'émission des événements (horodatage).
+#### Ce que le serveur Synapse et la base PostgreSQL VOIENT :
+- L'identifiant des comptes (`@agent1:localhost`).
+- L'horodatage exact des événements.
 - L'identifiant des salons de discussion (`!room_id:localhost`).
 - Le statut d'adhésion (*membership*) : invitations, jointures, départs.
 - **La charge utile chiffrée** : sous forme de bloc opaque `m.room.encrypted`.
 
 #### Ce que le serveur et la base de données NE PEUVENT JAMAIS VOIR :
-- **Le contenu en clair des messages** : le texte brut est chiffré sur le poste de l'émetteur et déchiffré uniquement sur le terminal du destinataire grâce aux clés Megolm.
-- **Les clés privées de chiffrement des agents** : celles-ci résident exclusivement dans le stockage sécurisé du client Element Web (IndexDB chiffrée côté client).
-- **Le contenu des fichiers transmis** : ils sont chiffrés avec une clé AES symétrique unique avant d'être déposés sur le serveur.
+- **Le contenu en clair des messages** : chiffré sur le terminal émetteur avec Megolm.
+- **Les clés privées de déchiffrement** : stockées exclusivement dans l'IndexedDB locale du navigateur.
+- **Les messages futurs après révocation** : l'agent révoqué perd ses appareils et ses clés de session, le rendant mathématiquement incapable de déchiffrer les futurs échanges.
 
 ---
 
-### 10. Limites connues et feuille de route
+### 13. Décision Stratégique sur le 2FA
 
-1. **Protocole TLS (HTTPS)** : Désactivé dans ce socle de test local. En production régalienne, la terminaison HTTPS avec un certificat valide est obligatoire pour que le navigateur autorise l'accès complet aux APIs cryptographiques `SubtleCrypto` de WebCrypto.
-2. **Double facteur (2FA)** : Non configuré dans cette version initiale conformément aux consignes. L'intégration future s'effectuera via un fournisseur d'identité OIDC souverain (Keycloak) ou TOTP Matrix.
-3. **Métadonnées de trafic** : Bien que le contenu textuel soit mathématiquement inaccessible au serveur, l'administration peut voir qui parle avec qui et à quelle fréquence (métadonnées inhérentes à tout protocole de routage réseau).
+Pour la démonstration locale sur `http://localhost`, l'intégration d'un SSO/OIDC externe (type Authelia ou Keycloak) a été **volontairement reportée à la phase de production TLS** :
+1. **Contraintes de sécurité des navigateurs (SameSite / WebCrypto)** : Les flux de redirection SSO/OIDC sans HTTPS échouent fréquemment en local sur les navigateurs stricts (cookies de session tiers rejetés).
+2. **Évolution vers Element X et MAS** : Element X exige le nouveau **Matrix Authentication Service (MAS)** et ne supporte pas le module SSO legacy de Synapse.
+3. **Mesures compensatoires Jour 2** : Mots de passe à haute entropie (générés par l'autorité) + révocation immédiate multi-appareils + isolation réseau totale de la base.
+Consultez `docs/SECURITY.md` pour le plan détaillé de déploiement MAS / FIDO2 en production.
+

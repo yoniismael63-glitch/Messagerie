@@ -25,7 +25,7 @@ test('auditHomeserverConfig valide allow_federation: false et trusted_key_server
 server_name: "localhost"
 allow_federation: false
 trusted_key_servers: []
-enable_registration: false jv
+enable_registration: false
 encryption_for_new_rooms: "encrypted"
 `;
   const results = auditHomeserverConfig(secureYaml);

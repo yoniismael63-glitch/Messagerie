@@ -12,6 +12,9 @@ server_name: "${SERVER_NAME}"
 # URL publique annoncée pour les redirections et les clients
 public_baseurl: "${BASE_URL}/"
 
+# SOUVERAINETÉ : Interdiction absolue de télémétrie externe
+report_stats: false
+
 # Fichier de verrouillage PID
 pid_file: /data/homeserver.pid
 
@@ -34,9 +37,9 @@ listeners:
 database:
   name: psycopg2
   args:
-    user: ${POSTGRES_USER}
+    user: "${POSTGRES_USER}"
     password: "${POSTGRES_PASSWORD}"
-    database: ${POSTGRES_DB}
+    database: "${POSTGRES_DB}"
     host: db
     port: 5432
     cp_min: 5
@@ -65,10 +68,19 @@ suppress_key_server_warning: true
 # RÈGLE ÉLIMINATOIRE 2 : Identité contrôlée & Inscription publique désactivée
 # ------------------------------------------------------------------------------
 # Les agents ne peuvent pas s'inscrire eux-mêmes : seul un enrôlement admin est autorisé
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#enable_registration
 enable_registration: false
+
+# Empêche tout contournement de vérification lors de l'enregistrement
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#enable_registration_without_verification
 enable_registration_without_verification: false
 
+# Inscription par jeton désactivée car toute inscription publique est prohibée
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#registration_requires_token
+registration_requires_token: false
+
 # Clé secrète partagée utilisée par les scripts d'enrôlement autorisés
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#registration_shared_secret
 registration_shared_secret: "${SYNAPSE_REGISTRATION_SHARED_SECRET}"
 
 # ------------------------------------------------------------------------------
@@ -92,6 +104,3 @@ presence:
 # Désactive les aperçus d'URL (empêche le serveur de requêter des liens arbitraires sur le Web)
 # Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#url_preview_enabled
 url_preview_enabled: false
-
-# Emplacement des logs Synapse
-log_config: "/synapse_bootstrap/log.config" # À VÉRIFIER (Optionnel : si omis, Synapse logue sur stdout par défaut selon https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#logging)

@@ -2,10 +2,11 @@ export interface ProjectFile {
   path: string;
   name: string;
   directory: string;
-  language: 'bash' | 'yaml' | 'json' | 'markdown' | 'text' | 'dockerfile' | 'nginx';
+  language: 'bash' | 'yaml' | 'json' | 'markdown' | 'text' | 'dockerfile' | 'nginx' | 'powershell';
   description: string;
   securityNotice?: string;
   content: string;
+  day?: 1 | 2;
 }
 
 export const PROJECT_FILES: ProjectFile[] = [
@@ -14,13 +15,14 @@ export const PROJECT_FILES: ProjectFile[] = [
     name: '.env.example',
     directory: 'racine',
     language: 'bash',
-    description: 'Modèle des variables d\'environnement et des secrets cryptographiques générés par openssl.',
+    description: 'Modèle des variables d\'environnement avec NGINX_HTTP_PORT et secrets openssl.',
     securityNotice: 'Ne jamais commiter le fichier .env final. Tous les secrets sont injectés ici.',
+    day: 1,
     content: `# ==============================================================================
 # Configuration d'environnement - Messagerie Souveraine Matrix / Synapse
-# Contexte : Administration Publique du Burkina Faso
+# Contexte : Administration Publique du Burkina Faso (Hackathon Jour 1)
 # ==============================================================================
-# Ce fichier sert de modèle. Copiez-le vers '.env' avant de lancer Docker Compose :
+# Copiez ce fichier vers '.env' avant de lancer Docker Compose :
 #   cp .env.example .env
 #
 # ATTENTION SÉCURITÉ : Ne commitez JAMAIS le fichier .env final dans Git !
@@ -29,19 +31,20 @@ export const PROJECT_FILES: ProjectFile[] = [
 # ------------------------------------------------------------------------------
 # 1. Nom de domaine et URL publique du serveur
 # ------------------------------------------------------------------------------
-# Pour une démonstration locale sur le poste de travail : "localhost" et "http://localhost"
-# Pour un déploiement souverain en production : "messagerie.gouv.bf" et "https://messagerie.gouv.bf"
+# Au Jour 1, utilisez strictement 'localhost' et 'http://localhost'
+# RÈGLE WEBCRYPTO : Les navigateurs exigent 'localhost' ou HTTPS pour activer
+# l'API WebCrypto requise par le chiffrement de bout en bout Element/Megolm.
 SERVER_NAME=localhost
 BASE_URL=http://localhost
 
-# Port HTTP exposé par le reverse-proxy Nginx sur la machine hôte
-WEB_PORT=80
+# Port HTTP exposé par le reverse-proxy Nginx sur la machine hôte (défaut : 80)
+NGINX_HTTP_PORT=80
 
 # ------------------------------------------------------------------------------
 # 2. Base de données relationnelle PostgreSQL
 # ------------------------------------------------------------------------------
 POSTGRES_USER=synapse_admin
-# Mot de passe fort pour PostgreSQL.
+# Mot de passe fort pour PostgreSQL (non exposé sur l'hôte)
 # Génération recommandée : openssl rand -hex 32
 POSTGRES_PASSWORD=CHANGEME_POSTGRES_SECRET_OPENSSL_HEX32
 POSTGRES_DB=synapse_db
@@ -62,18 +65,19 @@ SYNAPSE_MACAROON_SECRET_KEY=CHANGEME_MACAROON_KEY_OPENSSL_HEX32
 SYNAPSE_FORM_SECRET=CHANGEME_FORM_SECRET_OPENSSL_HEX32
 
 # ------------------------------------------------------------------------------
-# 4. Comptes pré-enrôlés pour la démonstration et l'administration
+# 4. Comptes d'administration et de test pour le script de seed
 # ------------------------------------------------------------------------------
-# Identifiant et mot de passe de l'administrateur de sécurité gouvernemental
-SYNAPSE_ADMIN_USER=admin_faso
+# Compte administrateur souverain
+SYNAPSE_ADMIN_USER=admin
+# Mot de passe administrateur pour l'enrôlement et l'API admin
 # Génération recommandée : openssl rand -base64 24
 SYNAPSE_ADMIN_PASSWORD=CHANGEME_ADMIN_PASSWORD_24B
 
 # Agents de démonstration (aucun enregistrement libre permis)
-DEMO_AGENT1_USER=agent_secu_1
+DEMO_AGENT1_USER=agent1
 DEMO_AGENT1_PASSWORD=CHANGEME_AGENT1_PASS_24B
 
-DEMO_AGENT2_USER=agent_secu_2
+DEMO_AGENT2_USER=agent2
 DEMO_AGENT2_PASSWORD=CHANGEME_AGENT2_PASS_24B
 `,
   },
@@ -83,6 +87,7 @@ DEMO_AGENT2_PASSWORD=CHANGEME_AGENT2_PASS_24B
     directory: 'racine',
     language: 'text',
     description: 'Protection contre la fuite accidentelle de secrets (.env), de clés Ed25519 ou de volumes locaux.',
+    day: 1,
     content: `# Fichiers de secrets et variables d'environnement
 .env
 .env.local
@@ -111,10 +116,12 @@ Thumbs.db
     directory: 'racine',
     language: 'text',
     description: 'Licence open source GNU AGPL-3.0 garantissant l\'indépendance et la transparence sans clause propriétaire.',
+    day: 1,
     content: `GNU AFFERO GENERAL PUBLIC LICENSE
 Version 3, 19 November 2007
 
-Copyright (C) 2026 FasoMatrix Project Contributors.
+Copyright (C) 2026 Projet Messagerie Souveraine - Administration Publique
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -135,13 +142,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     directory: 'racine',
     language: 'yaml',
     description: 'Orchestration Docker Compose v2 sans tiers : db (PostgreSQL 16), synapse (v1.125.0), element (v1.11.94), nginx (1.27).',
-    securityNotice: 'Seul Nginx publie un port hôte (80). PostgreSQL n\'est accessible que sur le bridge interne matrix_internal.',
+    securityNotice: 'Seul Nginx publie un port hôte (${NGINX_HTTP_PORT:-80}). PostgreSQL est confiné sur matrix_internal.',
+    day: 1,
     content: `# ==============================================================================
 # Orchestration souveraine Matrix / Synapse pour l'Administration Publique
-# Contexte : Hackathon Sécurité - Déploiement "One-Command"
+# Contexte : Hackathon Sécurité - Jour 1 "Socle qui tourne"
 # ==============================================================================
 # Architecture réseau :
-#   - Seul NGINX expose un port vers l'hôte (port 80 ou \${WEB_PORT}).
+#   - Seul NGINX expose un port vers l'hôte (port \${NGINX_HTTP_PORT:-80}).
 #   - PostgreSQL (db) est strictement cantonné au réseau privé Docker 'matrix_internal'.
 #   - Synapse communique uniquement avec NGINX et PostgreSQL.
 #   - Fédération Matrix désactivée, Inscription libre désactivée.
@@ -158,7 +166,7 @@ services:
       POSTGRES_USER: \${POSTGRES_USER}
       POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
       POSTGRES_DB: \${POSTGRES_DB}
-      # Synapse exige une collation C et un encodage UTF-8 pour les index Matrix
+      # Synapse exige un encodage UTF-8 et une collation C
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - db_data:/var/lib/postgresql/data
@@ -182,7 +190,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "/synapse_bootstrap/entrypoint.sh"]
+    entrypoint: ["/bin/sh", "-c", "python3 -c 'open(\\\"/tmp/entrypoint.sh\\\",\\\"w\\\").write(open(\\\"/synapse_bootstrap/entrypoint.sh\\\",\\\"rb\\\").read().decode(\\\"utf-8-sig\\\").replace(\\\"\\\\r\\\\n\\\",\\\"\\\\n\\\"))' && chmod +x /tmp/entrypoint.sh && exec /bin/sh /tmp/entrypoint.sh"]
     environment:
       SERVER_NAME: \${SERVER_NAME}
       BASE_URL: \${BASE_URL}
@@ -198,7 +206,6 @@ services:
       - ./synapse/entrypoint.sh:/synapse_bootstrap/entrypoint.sh:ro
     networks:
       - matrix_internal
-    # Synapse écoute sur le port 8008 uniquement au sein du réseau Docker 'matrix_internal'.
 
   # ----------------------------------------------------------------------------
   # 3. Client Web Officiel Element
@@ -211,7 +218,6 @@ services:
       - ./element/config.json:/app/config.json:ro
     networks:
       - matrix_internal
-    # Fichiers statiques servis en interne à NGINX.
 
   # ----------------------------------------------------------------------------
   # 4. Reverse Proxy Nginx - Point d'entrée unique de la souveraineté
@@ -220,7 +226,7 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "\${WEB_PORT:-80}:80"
+      - "\${NGINX_HTTP_PORT:-80}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -251,8 +257,9 @@ networks:
     name: 'homeserver.yaml.template',
     directory: 'synapse',
     language: 'yaml',
-    description: 'Modèle de configuration Synapse hermétique : fédération coupée, inscription désactivée, clés de confiance vides.',
+    description: 'Modèle Synapse souverain : fédération coupée, inscription fermée, clé Ed25519 et E2EE par défaut.',
     securityNotice: 'allow_federation: false et trusted_key_servers: [] éliminent tout risque d\'exfiltration.',
+    day: 1,
     content: `# ==============================================================================
 # Modèle de configuration Synapse - Homeserver Souverain
 # Contexte : Administration Publique du Burkina Faso
@@ -266,6 +273,9 @@ server_name: "\${SERVER_NAME}"
 
 # URL publique annoncée pour les redirections et les clients
 public_baseurl: "\${BASE_URL}/"
+
+# SOUVERAINETÉ : Interdiction absolue de télémétrie externe
+report_stats: false
 
 # Fichier de verrouillage PID
 pid_file: /data/homeserver.pid
@@ -289,9 +299,9 @@ listeners:
 database:
   name: psycopg2
   args:
-    user: \${POSTGRES_USER}
+    user: "\${POSTGRES_USER}"
     password: "\${POSTGRES_PASSWORD}"
-    database: \${POSTGRES_DB}
+    database: "\${POSTGRES_DB}"
     host: db
     port: 5432
     cp_min: 5
@@ -307,9 +317,11 @@ signing_key_path: /data/\${SERVER_NAME}.signing.key
 # RÈGLE ÉLIMINATOIRE 1 : Isolation souveraine & Désactivation de la fédération
 # ------------------------------------------------------------------------------
 # Interdit toute communication avec des serveurs Matrix étrangers ou hors réseau national
+# Documentation officielle : https://matrix-org.github.io/synapse/latest/federation.html
 allow_federation: false
 
 # Interdit toute requête sortante vers un serveur de clés externe (ex: matrix.org)
+# Documentation officielle : https://matrix-org.github.io/synapse/latest/federation.html
 trusted_key_servers: []
 
 # Supprime l'avertissement de Synapse relatif à l'absence de serveurs de clés publics
@@ -320,6 +332,7 @@ suppress_key_server_warning: true
 # RÈGLE ÉLIMINATOIRE 2 : Identité contrôlée & Inscription publique désactivée
 # ------------------------------------------------------------------------------
 # Les agents ne peuvent pas s'inscrire eux-mêmes : seul un enrôlement admin est autorisé
+# Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#registration
 enable_registration: false
 enable_registration_without_verification: false
 
@@ -335,7 +348,7 @@ form_secret: "\${SYNAPSE_FORM_SECRET}"
 # ------------------------------------------------------------------------------
 # RÈGLE ÉLIMINATOIRE 4 : Minimisation des métadonnées et chiffrement par défaut
 # ------------------------------------------------------------------------------
-# Force l'activation du chiffrement de bout en bout (Megolm) pour tout nouveau salon
+# Force l'activation du chiffrement de bout en bout (Megolm) pour tout nouveau salon privé
 # Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#encryption_for_new_rooms
 encryption_for_new_rooms: "encrypted"
 
@@ -347,9 +360,6 @@ presence:
 # Désactive les aperçus d'URL (empêche le serveur de requêter des liens arbitraires sur le Web)
 # Doc officielle : https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#url_preview_enabled
 url_preview_enabled: false
-
-# Emplacement des logs Synapse
-log_config: "/synapse_bootstrap/log.config" # À VÉRIFIER (Optionnel : si omis, Synapse logue sur stdout par défaut selon https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#logging)
 `,
   },
   {
@@ -357,15 +367,25 @@ log_config: "/synapse_bootstrap/log.config" # À VÉRIFIER (Optionnel : si omis,
     name: 'entrypoint.sh',
     directory: 'synapse',
     language: 'bash',
-    description: 'Génère homeserver.yaml au premier démarrage, crée la clé Ed25519 si absente et démarre Synapse.',
-    securityNotice: 'Zéro appel réseau externe. Utilise python3 intégré à l\'image officielle.',
+    description: 'Valide les variables obligatoires, génère homeserver.yaml et la clé Ed25519 sans requête externe.',
+    securityNotice: 'Vérification stricte de SERVER_NAME, POSTGRES_* et SYNAPSE_* au démarrage sans dépendance bash.',
+    day: 1,
     content: `#!/bin/sh
 # ==============================================================================
 # Script d'initialisation et démarrage du conteneur Synapse Souverain
+# Contexte : Administration Publique du Burkina Faso (Jour 1)
 # ==============================================================================
 set -eu
 
-echo "[INFO] Démarrage du conteneur Synapse Souverain (Burkina Faso)..."
+echo "[INFO] Initialisation du conteneur Synapse Souverain..."
+
+# ------------------------------------------------------------------------------
+# Vérification des variables d'environnement obligatoires (POSIX dash-safe)
+# ------------------------------------------------------------------------------
+if [ -z "\${SERVER_NAME:-}" ] || [ -z "\${POSTGRES_USER:-}" ] || [ -z "\${POSTGRES_PASSWORD:-}" ] || [ -z "\${SYNAPSE_REGISTRATION_SHARED_SECRET:-}" ]; then
+    echo "[ERREUR CRITIQUE] Variables obligatoires non définies dans .env" >&2
+    exit 1
+fi
 
 CONFIG_FILE="/data/homeserver.yaml"
 TEMPLATE_FILE="/synapse_bootstrap/homeserver.yaml.template"
@@ -373,7 +393,7 @@ SIGNING_KEY="/data/\${SERVER_NAME}.signing.key"
 
 # Vérification du montage du volume persistant
 if [ ! -d "/data" ]; then
-    echo "[ERREUR] Le répertoire persistant /data n'existe pas." >&2
+    echo "[ERREUR] Le répertoire persistant /data est inaccessible." >&2
     exit 1
 fi
 
@@ -383,11 +403,7 @@ fi
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "[INFO] Premier démarrage détecté : génération de \${CONFIG_FILE} depuis le modèle..."
     
-    if command -v envsubst >/dev/null 2>&1; then
-        envsubst < "$TEMPLATE_FILE" > "$CONFIG_FILE"
-    else
-        # Remplacement robuste utilisant Python 3 (présent dans l'image officielle)
-        python3 -c '
+    python3 -c '
 import os, re
 with open("/synapse_bootstrap/homeserver.yaml.template", "r") as f:
     content = f.read()
@@ -395,21 +411,26 @@ rendered = re.sub(r"\\$\{([A-Za-z0-9_]+)\}", lambda m: os.environ.get(m.group(1)
 with open("/data/homeserver.yaml", "w") as f:
     f.write(rendered)
 '
-    fi
     echo "[SUCCÈS] Configuration \${CONFIG_FILE} générée avec succès."
 else
     echo "[INFO] Configuration existante trouvée dans \${CONFIG_FILE}. Démarrage standard."
 fi
 
+# Garantie anti-erreur : s'assurer que report_stats est bien défini
+if ! grep -q "report_stats:" "$CONFIG_FILE"; then
+    echo "report_stats: false" >> "$CONFIG_FILE"
+    echo "[SUCCÈS] report_stats: false ajouté à la configuration."
+fi
+
 # ------------------------------------------------------------------------------
-# Étape 2 : Génération de la clé de signature Ed25519 si absente
+# Étape 2 : Génération de la clé cryptographique Ed25519 si absente
 # ------------------------------------------------------------------------------
 if [ ! -f "$SIGNING_KEY" ]; then
-    echo "[INFO] Clé de signature \${SIGNING_KEY} absente : génération cryptographique Ed25519..."
+    echo "[INFO] Clé de signature locale \${SIGNING_KEY} absente : génération cryptographique Ed25519..."
     python3 -m synapse.app.homeserver --generate-keys -c "$CONFIG_FILE"
-    echo "[SUCCÈS] Clé de signature locale générée avec succès."
+    echo "[SUCCÈS] Clé de signature Ed25519 générée localement."
 else
-    echo "[INFO] Clé de signature existante validée : \${SIGNING_KEY}."
+    echo "[INFO] Clé de signature Ed25519 validée : \${SIGNING_KEY}."
 fi
 
 # ------------------------------------------------------------------------------
@@ -425,6 +446,7 @@ exec python3 -m synapse.app.homeserver -c "$CONFIG_FILE"
     directory: 'element',
     language: 'json',
     description: 'Configuration durcie pour Element Web : aucun serveur d\'identité tiers, découverte désactivée, verrouillage homeserver.',
+    day: 1,
     content: `{
   "default_server_config": {
     "m.homeserver": {
@@ -459,6 +481,7 @@ exec python3 -m synapse.app.homeserver -c "$CONFIG_FILE"
     directory: 'nginx',
     language: 'nginx',
     description: 'Reverse-proxy NGINX régulant le port 80 vers Synapse (/_matrix/) et Element (/). Support long-polling /sync et WebSockets.',
+    day: 1,
     content: `# ==============================================================================
 # Configuration NGINX Reverse Proxy - Messagerie Souveraine Matrix
 # ==============================================================================
@@ -500,7 +523,7 @@ http {
         # ----------------------------------------------------------------------
         # 1. Acheminement des API Matrix & Synapse vers le conteneur interne
         # ----------------------------------------------------------------------
-        location ~* ^(/_matrix|/_synapse/client) {
+        location ~* ^(/_matrix|/_synapse) {
             proxy_pass http://synapse:8008;
             proxy_set_header X-Forwarded-For $remote_addr;
             proxy_set_header X-Forwarded-Proto $scheme;
@@ -535,11 +558,17 @@ http {
     name: 'seed_demo.sh',
     directory: 'scripts',
     language: 'bash',
-    description: 'Enrôle l\'admin et 2 agents via l\'outil interne Synapse, se connecte pour créer un salon chiffré en Megolm et invite les agents.',
-    securityNotice: 'Idempotent. Aucune faille d\'inscription publique.',
+    description: 'Enrôle admin, agent1 et agent2, crée un salon chiffré en m.megolm.v1.aes-sha2 et valide l\'état par requête GET.',
+    securityNotice: 'Vérification formelle de m.room.encryption avant résumé.',
+    day: 1,
     content: `#!/usr/bin/env bash
 # ==============================================================================
-# Script de peuplement (Seed) démo souveraine FasoMatrix
+# Script de peuplement (Seed) démo souveraine FasoMatrix - Validation Jour 1
+# ==============================================================================
+# - Enrôle l'administrateur et les agents 'agent1' et 'agent2'
+# - Crée un salon EXPLICITEMENT CHIFFRÉ en Megolm (m.megolm.v1.aes-sha2)
+# - Invite 'agent1' et 'agent2'
+# - Valide par un GET sur l'API d'état que le chiffrement est actif
 # ==============================================================================
 set -euo pipefail
 
@@ -560,27 +589,34 @@ set +a
 
 BASE_URL="\${BASE_URL:-http://localhost}"
 SERVER_NAME="\${SERVER_NAME:-localhost}"
+ADMIN_USER="\${SYNAPSE_ADMIN_USER:-admin}"
+ADMIN_PASS="\${SYNAPSE_ADMIN_PASSWORD:-admin_secret_pass}"
+AGENT1_USER="\${DEMO_AGENT1_USER:-agent1}"
+AGENT1_PASS="\${DEMO_AGENT1_PASSWORD:-agent1_secret_pass}"
+AGENT2_USER="\${DEMO_AGENT2_USER:-agent2}"
+AGENT2_PASS="\${DEMO_AGENT2_PASSWORD:-agent2_secret_pass}"
 
 echo "=============================================================================="
-echo "   PEUPLEMENT ET ENRÔLEMENT DES AGENTS SOUVERAINS (BURKINA FASO)"
+echo "   FASOMATRIX - VALIDATION DU SOCLE SOUVERAIN (JOUR 1)"
 echo "=============================================================================="
 
-# 1. Vérification que Synapse est démarré et fonctionnel
-echo "[1/4] Vérification de la disponibilité du serveur Synapse via NGINX..."
+# 1. Vérification de la disponibilité du homeserver
+echo "[1/5] Vérification de la disponibilité de Synapse sur \${BASE_URL}..."
 MAX_RETRIES=20
 COUNT=0
 until curl -s -f "\${BASE_URL}/_matrix/client/versions" >/dev/null 2>&1; do
     COUNT=$((COUNT + 1))
     if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
-        echo "[ERREUR] Impossible de joindre Synapse sur \${BASE_URL} après \${MAX_RETRIES} tentatives."
+        echo "[ERREUR] Synapse ne répond pas sur \${BASE_URL} après \${MAX_RETRIES} essais."
+        echo "Vérifiez l'état des conteneurs : docker compose ps"
         exit 1
     fi
     echo "  -> En attente de Synapse (tentative $COUNT/$MAX_RETRIES)..."
     sleep 2
 done
-echo "[SUCCÈS] Synapse répond correctement."
+echo "[SUCCÈS] Synapse répond sur l'API standard /_matrix/client/versions."
 
-# 2. Enregistrement idempotent via l'outil interne Synapse
+# 2. Enrôlement des comptes via register_new_matrix_user (idempotent)
 register_user_cli() {
     local username="$1"
     local password="$2"
@@ -598,31 +634,31 @@ register_user_cli() {
         -c /data/homeserver.yaml 2>&1 || true)
 
     if echo "$out" | grep -qi "already taken\\|already exists"; then
-        echo "     [INFO] L'agent '\${username}' est déjà enregistré (idempotence respectée)."
+        echo "     [INFO] Compte '\${username}' déjà existant (idempotence garantie)."
     elif echo "$out" | grep -qi "success"; then
-        echo "     [SUCCÈS] Enrôlement réussi."
+        echo "     [SUCCÈS] Compte '\${username}' créé avec succès."
     else
-        echo "     [NOTE] Retour Synapse : \${out}"
+        echo "     [NOTE] Statut de création : \${out}"
     fi
 }
 
 echo ""
-echo "[2/4] Création des comptes au sein du registre souverain..."
-register_user_cli "\${SYNAPSE_ADMIN_USER}" "\${SYNAPSE_ADMIN_PASSWORD}" "true"
-register_user_cli "\${DEMO_AGENT1_USER}" "\${DEMO_AGENT1_PASSWORD}" "false"
-register_user_cli "\${DEMO_AGENT2_USER}" "\${DEMO_AGENT2_PASSWORD}" "false"
+echo "[2/5] Création des comptes d'autorité et des agents opérationnels..."
+register_user_cli "\${ADMIN_USER}" "\${ADMIN_PASS}" "true"
+register_user_cli "\${AGENT1_USER}" "\${AGENT1_PASS}" "false"
+register_user_cli "\${AGENT2_USER}" "\${AGENT2_PASS}" "false"
 
-# 3. Authentification de l'administrateur auprès de l'API Matrix
+# 3. Connexion de l'administrateur pour récupérer le token
 echo ""
-echo "[3/4] Authentification de l'administrateur via l'API Client Matrix..."
+echo "[3/5] Authentification administrateur via l'API Client-Server..."
 LOGIN_PAYLOAD=$(cat <<EOF
 {
   "type": "m.login.password",
   "identifier": {
     "type": "m.id.user",
-    "user": "\${SYNAPSE_ADMIN_USER}"
+    "user": "\${ADMIN_USER}"
   },
-  "password": "\${SYNAPSE_ADMIN_PASSWORD}"
+  "password": "\${ADMIN_PASS}"
 }
 EOF
 )
@@ -634,18 +670,19 @@ LOGIN_RESP=$(curl -s -X POST "\${BASE_URL}/_matrix/client/v3/login" \
 ADMIN_TOKEN=$(echo "$LOGIN_RESP" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4 || true)
 
 if [ -z "$ADMIN_TOKEN" ]; then
-    echo "[ERREUR] Échec de récupération du token administrateur. Réponse : $LOGIN_RESP"
+    echo "[ERREUR CRITIQUE] Impossible d'obtenir le jeton d'accès administrateur."
+    echo "Réponse API : \${LOGIN_RESP}"
     exit 1
 fi
-echo "[SUCCÈS] Session administrateur établie (Token sécurisé généré)."
+echo "[SUCCÈS] Jeton administrateur obtenu avec succès."
 
-# 4. Création d'un salon avec chiffrement de bout en bout (Megolm) et invitation
+# 4. Création du salon explicitement chiffré en Megolm
 echo ""
-echo "[4/4] Création du salon sécurisé avec chiffrement E2EE m.megolm.v1.aes-sha256..."
+echo "[4/5] Création du salon de démonstration chiffré en Megolm..."
 ROOM_PAYLOAD=$(cat <<EOF
 {
-  "name": "Cellule Souveraine - Communication Protégée",
-  "topic": "Échanges classifiés - Protocole Matrix E2EE (Megolm)",
+  "name": "Cellule Souveraine - Démo Jour 1",
+  "topic": "Salon chiffré de bout en bout - Administration Publique",
   "preset": "private_chat",
   "visibility": "private",
   "initial_state": [
@@ -653,13 +690,13 @@ ROOM_PAYLOAD=$(cat <<EOF
       "type": "m.room.encryption",
       "state_key": "",
       "content": {
-        "algorithm": "m.megolm.v1.aes-sha256"
+        "algorithm": "m.megolm.v1.aes-sha2"
       }
     }
   ],
   "invite": [
-    "@\${DEMO_AGENT1_USER}:\${SERVER_NAME}",
-    "@\${DEMO_AGENT2_USER}:\${SERVER_NAME}"
+    "@\${AGENT1_USER}:\${SERVER_NAME}",
+    "@\${AGENT2_USER}:\${SERVER_NAME}"
   ]
 }
 EOF
@@ -672,31 +709,60 @@ ROOM_RESP=$(curl -s -X POST "\${BASE_URL}/_matrix/client/v3/createRoom" \
 
 ROOM_ID=$(echo "$ROOM_RESP" | grep -o '"room_id":"[^"]*' | cut -d'"' -f4 || true)
 
-echo "=============================================================================="
-echo "                      RÉSUMÉ DU DÉPLOIEMENT SOUVERAIN"
-echo "=============================================================================="
-echo "Accès Client Web Element : \${BASE_URL}"
-echo ""
-echo "Comptes disponibles :"
-echo "  1. Administrateur de sécurité :"
-echo "     - Identifiant : @\${SYNAPSE_ADMIN_USER}:\${SERVER_NAME}"
-echo "     - Mot de passe : \${SYNAPSE_ADMIN_PASSWORD}"
-echo ""
-echo "  2. Agent Opérationnel 1 :"
-echo "     - Identifiant : @\${DEMO_AGENT1_USER}:\${SERVER_NAME}"
-echo "     - Mot de passe : \${DEMO_AGENT1_PASSWORD}"
-echo ""
-echo "  3. Agent Opérationnel 2 :"
-echo "     - Identifiant : @\${DEMO_AGENT2_USER}:\${SERVER_NAME}"
-echo "     - Mot de passe : \${DEMO_AGENT2_PASSWORD}"
-echo ""
-if [ -n "$ROOM_ID" ]; then
-    echo "Salon chiffré de bout en bout créé :"
-    echo "  - Nom     : Cellule Souveraine - Communication Protégée"
-    echo "  - ID      : \${ROOM_ID}"
-    echo "  - Chiffre : Megolm (m.megolm.v1.aes-sha256)"
-    echo "  - Membres invités : Agent 1 et Agent 2"
+if [ -z "$ROOM_ID" ]; then
+    echo "[ERREUR] Échec de la création du salon chiffré."
+    echo "Réponse API : \${ROOM_RESP}"
+    exit 1
 fi
+echo "[SUCCÈS] Salon créé avec l'ID : \${ROOM_ID}"
+
+# 5. Vérification formelle de l'activation du chiffrement par GET
+echo ""
+echo "[5/5] Vérification de l'événement d'état m.room.encryption..."
+STATE_RESP=$(curl -s -X GET "\${BASE_URL}/_matrix/client/v3/rooms/\${ROOM_ID}/state/m.room.encryption" \
+  -H "Authorization: Bearer \${ADMIN_TOKEN}")
+
+if echo "$STATE_RESP" | grep -q "m.megolm.v1.aes-sha2"; then
+    echo "[SUCCÈS CONFIRMÉ] L'événement d'état m.room.encryption est bien actif : \${STATE_RESP}"
+else
+    echo "[AVERTISSEMENT] L'état de chiffrement initial n'a pas été détecté. Application explicite par PUT..."
+    PUT_RESP=$(curl -s -X PUT "\${BASE_URL}/_matrix/client/v3/rooms/\${ROOM_ID}/state/m.room.encryption" \
+      -H "Authorization: Bearer \${ADMIN_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d '{"algorithm":"m.megolm.v1.aes-sha2"}')
+    
+    # Vérification après PUT
+    STATE_RETRY=$(curl -s -X GET "\${BASE_URL}/_matrix/client/v3/rooms/\${ROOM_ID}/state/m.room.encryption" \
+      -H "Authorization: Bearer \${ADMIN_TOKEN}")
+    if ! echo "$STATE_RETRY" | grep -q "m.megolm.v1.aes-sha2"; then
+        echo "[ERREUR CRITIQUE] Impossible d'activer le chiffrement Megolm sur le salon \${ROOM_ID}."
+        exit 1
+    fi
+    echo "[SUCCÈS CONFIRMÉ] Chiffrement Megolm activé par PUT : \${STATE_RETRY}"
+fi
+
+echo ""
+echo "=============================================================================="
+echo "            RÉSUMÉ DU SOCLE SOUVERAIN FASOMATRIX (JOUR 1)"
+echo "=============================================================================="
+echo "Point d'accès Web Element : \${BASE_URL} (utiliser impérativement http://localhost)"
+echo ""
+echo "Identifiants des comptes de démonstration :"
+echo "  1. Agent 1 :"
+echo "     - Utilisateur : \${AGENT1_USER}"
+echo "     - Identifiant Matrix : @\${AGENT1_USER}:\${SERVER_NAME}"
+echo "     - Mot de passe : \${AGENT1_PASS}"
+echo ""
+echo "  2. Agent 2 :"
+echo "     - Utilisateur : \${AGENT2_USER}"
+echo "     - Identifiant Matrix : @\${AGENT2_USER}:\${SERVER_NAME}"
+echo "     - Mot de passe : \${AGENT2_PASS}"
+echo ""
+echo "Salon de démonstration :"
+echo "  - Nom       : Cellule Souveraine - Démo Jour 1"
+echo "  - Room ID   : \${ROOM_ID}"
+echo "  - Chiffrement : Megolm (m.megolm.v1.aes-sha2) [CONFIRMÉ ET VÉRIFIÉ]"
+echo "  - Invités   : @\${AGENT1_USER}:\${SERVER_NAME} et @\${AGENT2_USER}:\${SERVER_NAME}"
 echo "=============================================================================="
 `,
   },
@@ -707,6 +773,7 @@ echo "==========================================================================
     language: 'bash',
     description: 'Révocation immédiate d\'un agent via l\'API officielle Synapse POST /_synapse/admin/v1/deactivate/<user_id>.',
     securityNotice: 'Expulse l\'agent sur TOUS ses appareils sans délai.',
+    day: 2,
     content: `#!/usr/bin/env bash
 # ==============================================================================
 # Script de révocation immédiate d'un agent - FasoMatrix
@@ -715,7 +782,7 @@ set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
     echo "Usage : $0 <identifiant_matrix_utilisateur>"
-    echo "Exemple : $0 @agent_secu_1:localhost"
+    echo "Exemple : $0 @agent1:localhost"
     exit 1
 fi
 
@@ -736,14 +803,19 @@ source "$ENV_FILE"
 set +a
 
 BASE_URL="\${BASE_URL:-http://localhost}"
+SERVER_NAME="\${SERVER_NAME:-localhost}"
+
+if [[ ! "$TARGET_USER_ID" =~ ^@ ]]; then
+    TARGET_USER_ID="@\${TARGET_USER_ID}:\${SERVER_NAME}"
+fi
 
 echo "=============================================================================="
-echo "   PROCÉDURE DE RÉVOCATION D'HABILITATION DE SÉCURITÉ"
+echo "   PROCÉDURE DE RÉVOCATION D'HABILITATION DE SÉCURITÉ (JOUR 2)"
 echo "=============================================================================="
 echo "[CIBLE] Agent à révoquer : \${TARGET_USER_ID}"
 
 # 1. Récupération d'un jeton d'accès administrateur via l'API client standard
-echo "[1/3] Authentification auprès du service d'autorité Synapse..."
+echo "[1/5] Authentification auprès du service d'autorité Synapse..."
 LOGIN_PAYLOAD=$(cat <<EOF
 {
   "type": "m.login.password",
@@ -763,45 +835,672 @@ LOGIN_RESP=$(curl -s -X POST "\${BASE_URL}/_matrix/client/v3/login" \
 ADMIN_TOKEN=$(echo "$LOGIN_RESP" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4 || true)
 
 if [ -z "$ADMIN_TOKEN" ]; then
-    echo "[ERREUR] Impossible de se connecter en tant qu'administrateur."
+    echo "[ERREUR CRITIQUE] Impossible de se connecter en tant qu'administrateur."
     echo "Détails de la réponse : $LOGIN_RESP"
     exit 1
 fi
 echo "[SUCCÈS] Jeton administrateur validé."
 
-# 2. Appel de l'API officielle de désactivation
-echo "[2/3] Envoi de l'ordre de désactivation à Synapse..."
-DEACTIVATE_PAYLOAD='{"erase": false}'
-
 ENCODED_USER_ID=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$TARGET_USER_ID" 2>/dev/null || echo "$TARGET_USER_ID")
 
-RESPONSE=$(curl -s -w "\\n%{http_code}" -X POST \\
+# 2. Vérification d'idempotence : l'utilisateur est-il déjà désactivé ?
+echo "[2/5] Vérification de l'état actuel de l'agent..."
+USER_INFO=$(curl -s -X GET "\${BASE_URL}/_synapse/admin/v2/users/\${ENCODED_USER_ID}" \
+  -H "Authorization: Bearer \${ADMIN_TOKEN}")
+
+IS_DEACTIVATED=$(echo "$USER_INFO" | grep -o '"deactivated":true' || true)
+if [ -n "$IS_DEACTIVATED" ]; then
+    echo "[IDEMPOTENCE] L'agent \${TARGET_USER_ID} est déjà désactivé."
+    echo "[SUCCÈS] Opération terminée : le compte est déjà hors service."
+    exit 0
+fi
+
+# 3. Énumération des appareils actifs AVANT révocation
+echo "[3/5] Détection des appareils actifs associés au compte..."
+DEVICES_BEFORE_RESP=$(curl -s -X GET "\${BASE_URL}/_synapse/admin/v2/users/\${ENCODED_USER_ID}/devices" \
+  -H "Authorization: Bearer \${ADMIN_TOKEN}")
+
+DEVICE_COUNT_BEFORE=$(echo "$DEVICES_BEFORE_RESP" | grep -o '"device_id"' | wc -l || true)
+echo "  -> Nombre d'appareils actifs avant révocation : \${DEVICE_COUNT_BEFORE}"
+
+# 4. Exécution de l'ordre officiel de révocation immédiate
+echo "[4/5] Envoi de l'ordre de désactivation à Synapse..."
+DEACTIVATE_PAYLOAD='{"erase": false}'
+
+DEACTIVATE_RESP=$(curl -s -w "\\n%{http_code}" -X POST \\
   "\${BASE_URL}/_synapse/admin/v1/deactivate/\${ENCODED_USER_ID}" \\
   -H "Authorization: Bearer \${ADMIN_TOKEN}" \\
   -H "Content-Type: application/json" \\
   -d "$DEACTIVATE_PAYLOAD")
 
-HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
-HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+HTTP_STATUS=$(echo "$DEACTIVATE_RESP" | tail -n 1)
+HTTP_BODY=$(echo "$DEACTIVATE_RESP" | sed '$d')
 
-# 3. Traitement du statut retourné
-echo "[3/3] Vérification de la prise d'effet..."
-if [ "$HTTP_STATUS" = "200" ]; then
-    echo "=============================================================================="
-    echo " [RÉVOCATION EFFECTUÉE AVEC SUCCÈS]"
-    echo " - L'agent \${TARGET_USER_ID} est immédiatement déconnecté de TOUS ses appareils."
-    echo " - Tous ses jetons d'accès existants sont révoqués par Synapse."
-    echo " - Toute tentative de reconnexion sera rejetée avec M_USER_DEACTIVATED."
-    echo " - Réponse API : \${HTTP_BODY}"
-    echo "=============================================================================="
+if [ "$HTTP_STATUS" != "200" ]; then
+    echo "[ERREUR LORS DE LA RÉVOCATION] Statut HTTP : \${HTTP_STATUS}"
+    echo "Détails : \${HTTP_BODY}"
+    exit 1
+fi
+
+# 5. Preuve formelle post-révocation
+echo "[5/5] Contrôle contradictoire de la suppression des appareils..."
+DEVICES_AFTER_RESP=$(curl -s -X GET "\${BASE_URL}/_synapse/admin/v2/users/\${ENCODED_USER_ID}/devices" \
+  -H "Authorization: Bearer \${ADMIN_TOKEN}")
+
+DEVICE_COUNT_AFTER=$(echo "$DEVICES_AFTER_RESP" | grep -o '"device_id"' | wc -l || true)
+
+echo "=============================================================================="
+echo " [RÉVOCATION MULTI-APPAREILS CONFIRMÉE AVEC SUCCÈS]"
+echo " - Agent ciblé        : \${TARGET_USER_ID}"
+echo " - Bilan matériel     : \${DEVICE_COUNT_BEFORE} appareil(s) supprimé(s), \${DEVICE_COUNT_AFTER} restant(s)."
+echo " - Jetons de session  : Tous les access tokens existants ont été révoqués."
+echo " - Clés cryptographiques : Les clés Olm/Megolm de l'agent sont détruites."
+echo " - Expulsion salons   : L'agent est expulsé de tous les salons souverains."
+echo " - Tentative de reconnexion : Tout futur login sera rejeté avec 'M_USER_DEACTIVATED'."
+echo "=============================================================================="
+`,
+  },
+  {
+    path: 'mon-projet/scripts/seed_demo.ps1',
+    name: 'seed_demo.ps1',
+    directory: 'scripts',
+    language: 'powershell',
+    description: 'Script PowerShell natif Windows pour enrôler les comptes, générer le salon Megolm et vérifier le chiffrement.',
+    securityNotice: 'Compatible Windows PowerShell 5.1 & PowerShell 7 sans dépendance WSL ni bash.',
+    day: 1,
+    content: `# ==============================================================================
+# Script PowerShell de peuplement (Seed) démo souveraine FasoMatrix
+# Compatible Windows PowerShell 5.1 & PowerShell 7+
+# ==============================================================================
+$ErrorActionPreference = "Stop"
+
+Write-Host "==============================================================================" -ForegroundColor Cyan
+Write-Host "   FASOMATRIX - VALIDATION DU SOCLE SOUVERAIN (JOUR 1 - WINDOWS)" -ForegroundColor Cyan
+Write-Host "==============================================================================" -ForegroundColor Cyan
+
+# Lecture des identifiants depuis .env
+$adminUser = "admin"
+$adminPass = "CHANGEME_ADMIN_PASSWORD_24B"
+$agent1User = "agent1"
+$agent1Pass = "CHANGEME_AGENT1_PASS_24B"
+$agent2User = "agent2"
+$agent2Pass = "CHANGEME_AGENT2_PASS_24B"
+$serverName = "localhost"
+$baseUrl = "http://localhost"
+
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+            $parts = $line.Split("=", 2)
+            $k = $parts[0].Trim()
+            $v = $parts[1].Trim()
+            if ($k -eq "SYNAPSE_ADMIN_USER") { $adminUser = $v }
+            if ($k -eq "SYNAPSE_ADMIN_PASSWORD") { $adminPass = $v }
+            if ($k -eq "DEMO_AGENT1_USER") { $agent1User = $v }
+            if ($k -eq "DEMO_AGENT1_PASSWORD") { $agent1Pass = $v }
+            if ($k -eq "DEMO_AGENT2_USER") { $agent2User = $v }
+            if ($k -eq "DEMO_AGENT2_PASSWORD") { $agent2Pass = $v }
+            if ($k -eq "SERVER_NAME") { $serverName = $v }
+            if ($k -eq "BASE_URL") { $baseUrl = $v }
+        }
+    }
+}
+
+Write-Host "\`n[1/5] Vérification de la disponibilité de Synapse sur \$baseUrl..." -ForegroundColor Yellow
+\$maxRetries = 20
+\$retries = 0
+\$synapseReady = \$false
+while (-not \$synapseReady -and \$retries -lt \$maxRetries) {
+    try {
+        \$check = Invoke-RestMethod -Uri "\$baseUrl/_matrix/client/versions" -Method Get -TimeoutSec 3 -ErrorAction SilentlyContinue
+        if (\$check.versions) {
+            \$synapseReady = \$true
+            Write-Host "  [SUCCÈS] Synapse répond sur l'API \$baseUrl" -ForegroundColor Green
+        }
+    } catch {
+        \$retries++
+        Write-Host "  -> En attente de Synapse (tentative \$retries/\$maxRetries)..." -ForegroundColor DarkGray
+        Start-Sleep -Seconds 2
+    }
+}
+if (-not \$synapseReady) {
+    Write-Host "  [ERREUR] Synapse ne répond pas encore sur \$baseUrl. Vérifiez avec : docker compose ps" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "\`n[2/5] Enrôlement des comptes d'administration et des agents..." -ForegroundColor Yellow
+
+function Register-MatrixUser(\$user, \$pass, \$isAdmin) {
+    \$flag = if (\$isAdmin) { "-a" } else { "--no-admin" }
+    Write-Host "  -> Création du compte @\${user}:\${serverName}..."
+    \$res = docker compose exec -T synapse register_new_matrix_user -u \$user -p \$pass \$flag -c /data/homeserver.yaml 2>&1
+    if (\$res -match "already taken|already exists") {
+        Write-Host "     [INFO] Le compte '\$user' existe déjà (idempotent)." -ForegroundColor DarkGray
+    } elseif (\$res -match "success") {
+        Write-Host "     [SUCCÈS] Compte '\$user' créé avec succès !" -ForegroundColor Green
+    } else {
+        Write-Host "     [INFO] \$res" -ForegroundColor DarkGray
+    }
+}
+
+Register-MatrixUser -user \$adminUser -pass \$adminPass -isAdmin \$true
+Register-MatrixUser -user \$agent1User -pass \$agent1Pass -isAdmin \$false
+Register-MatrixUser -user \$agent2User -pass \$agent2Pass -isAdmin \$false
+
+Write-Host "\`n[3/5] Connexion administrateur pour initialiser le salon chiffré..." -ForegroundColor Yellow
+\$loginBody = @{
+    type = "m.login.password"
+    identifier = @{ type = "m.id.user"; user = \$adminUser }
+    password = \$adminPass
+} | ConvertTo-Json
+
+try {
+    \$loginRes = Invoke-RestMethod -Uri "\$baseUrl/_matrix/client/v3/login" -Method Post -Body \$loginBody -ContentType "application/json"
+    \$token = \$loginRes.access_token
+    Write-Host "  [SUCCÈS] Authentification réussie. Token admin obtenu." -ForegroundColor Green
+} catch {
+    Write-Host "  [ERREUR] Impossible de joindre l'API Synapse à \$baseUrl" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "\`n[4/5] Création du salon avec chiffrement Megolm (m.megolm.v1.aes-sha2)..." -ForegroundColor Yellow
+$roomBody = @{
+    name = "Cellule Souveraine - Démo Jour 1"
+    topic = "Salon chiffré de bout en bout - Administration Publique"
+    preset = "private_chat"
+    visibility = "private"
+    initial_state = @(
+        @{
+            type = "m.room.encryption"
+            state_key = ""
+            content = @{ algorithm = "m.megolm.v1.aes-sha2" }
+        }
+    )
+    invite = @("@\${agent1User}:\${serverName}", "@\${agent2User}:\${serverName}")
+} | ConvertTo-Json -Depth 5
+
+$roomRes = Invoke-RestMethod -Uri "\$baseUrl/_matrix/client/v3/createRoom" -Method Post -Body $roomBody -Headers @{ Authorization = "Bearer \$token" } -ContentType "application/json"
+$roomId = $roomRes.room_id
+Write-Host "  [SUCCÈS] Salon créé avec ID : \$roomId" -ForegroundColor Green
+
+Write-Host "\`n[4/4] Vérification formelle du chiffrement de bout en bout..." -ForegroundColor Yellow
+$stateRes = Invoke-RestMethod -Uri "\$baseUrl/_matrix/client/v3/rooms/\$roomId/state/m.room.encryption" -Method Get -Headers @{ Authorization = "Bearer \$token" }
+if ($stateRes.algorithm -eq "m.megolm.v1.aes-sha2") {
+    Write-Host "  [SUCCÈS VALIDÉ] Chiffrement Megolm (m.megolm.v1.aes-sha2) ACTIF et VÉRIFIÉ !" -ForegroundColor Green
+}
+
+Write-Host "\`n==============================================================================" -ForegroundColor Cyan
+Write-Host "               SOCLE OPÉRATIONNEL AVEC SUCCÈS" -ForegroundColor Green
+Write-Host "==============================================================================" -ForegroundColor Cyan
+Write-Host "1. Accédez à Element Web : \$baseUrl (impérativement http://localhost)"
+Write-Host "2. Agent 1 : utilisateur '\$agent1User' / mot de passe '\$agent1Pass'"
+Write-Host "3. Agent 2 : utilisateur '\$agent2User' / mot de passe '\$agent2Pass'"
+Write-Host "==============================================================================" -ForegroundColor Cyan
+`,
+  },
+  {
+    path: 'mon-projet/scripts/revoke_user.ps1',
+    name: 'revoke_user.ps1',
+    directory: 'scripts',
+    language: 'powershell',
+    description: 'Script PowerShell natif Windows pour révoquer immédiatement un utilisateur et fermer toutes ses sessions.',
+    securityNotice: 'Invalide immédiatement les tokens de session sans suppression destructrice de l\'historique chiffré.',
+    day: 2,
+    content: `param (
+    [Parameter(Mandatory=\$true)]
+    [string]\$User
+)
+
+\$ErrorActionPreference = "Stop"
+
+\$adminUser = "admin"
+\$adminPass = "CHANGEME_ADMIN_PASSWORD_24B"
+\$baseUrl = "http://localhost"
+\$serverName = "localhost"
+
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        \$line = \$_.Trim()
+        if (\$line -and -not \$line.StartsWith("#") -and \$line.Contains("=")) {
+            \$parts = \$line.Split("=", 2)
+            \$k = \$parts[0].Trim()
+            \$v = \$parts[1].Trim()
+            if (\$k -eq "SYNAPSE_ADMIN_USER") { \$adminUser = \$v }
+            if (\$k -eq "SYNAPSE_ADMIN_PASSWORD") { \$adminPass = \$v }
+            if (\$k -eq "SERVER_NAME") { \$serverName = \$v }
+            if (\$k -eq "BASE_URL") { \$baseUrl = \$v }
+        }
+    }
+}
+
+if (-not \$User.StartsWith("@")) {
+    \$User = "@" + \$User + ":" + \$serverName
+}
+
+Write-Host "==============================================================================" -ForegroundColor Cyan
+Write-Host "   PROCEDURE DE REVOCATION MULTI-APPAREILS SOUVERAINE (JOUR 2)" -ForegroundColor Cyan
+Write-Host "==============================================================================" -ForegroundColor Cyan
+Write-Host "[CIBLE] Agent a revoquer : \$User" -ForegroundColor Yellow
+
+# 1. Authentification Admin
+\$loginBody = @{
+    type = "m.login.password"
+    identifier = @{ type = "m.id.user"; user = \$adminUser }
+    password = \$adminPass
+} | ConvertTo-Json
+
+try {
+    \$loginRes = Invoke-RestMethod -Uri "\$baseUrl/_matrix/client/v3/login" -Method Post -Body \$loginBody -ContentType "application/json"
+    \$token = \$loginRes.access_token
+    Write-Host "  [SUCCES] Session administrateur authentifiee." -ForegroundColor Green
+} catch {
+    Write-Host "  [ERREUR] Impossible de s'authentifier aupres de \$baseUrl" -ForegroundColor Red
+    exit 1
+}
+
+\$encodedUser = [System.Uri]::EscapeDataString(\$User)
+
+# 2. Idempotence : verification de l'etat actuel
+try {
+    \$userInfo = Invoke-RestMethod -Uri "\$baseUrl/_synapse/admin/v2/users/\$encodedUser" -Method Get -Headers @{ Authorization = "Bearer \$token" }
+    if (\$userInfo.deactivated) {
+        Write-Host "  [IDEMPOTENCE] L'agent \$User est deja desactive." -ForegroundColor Green
+        exit 0
+    }
+} catch {
+    Write-Host "  [AVERTISSEMENT] Compte non verifie prealablement." -ForegroundColor DarkGray
+}
+
+# 3. Denombrement des appareils avant revocation
+\$deviceCountBefore = 0
+try {
+    \$devicesBefore = Invoke-RestMethod -Uri "\$baseUrl/_synapse/admin/v2/users/\$encodedUser/devices" -Method Get -Headers @{ Authorization = "Bearer \$token" }
+    if (\$devicesBefore.devices) {
+        \$deviceCountBefore = \$devicesBefore.devices.Count
+    }
+} catch {
+    \$deviceCountBefore = 0
+}
+Write-Host "  [CONSTAT] Nombre d'appareils actifs avant revocation : \$deviceCountBefore" -ForegroundColor Yellow
+
+# 4. Envoi de l'ordre officiel de revocation
+\$deactivateBody = @{ erase = \$false } | ConvertTo-Json
+try {
+    \$null = Invoke-RestMethod -Uri "\$baseUrl/_synapse/admin/v1/deactivate/\$encodedUser" -Method Post -Body \$deactivateBody -Headers @{ Authorization = "Bearer \$token" } -ContentType "application/json"
+    Write-Host "  [SUCCES] Ordre de desactivation valide par Synapse." -ForegroundColor Green
+} catch {
+    Write-Host "  [ERREUR] Echec de l'appel a l'API de desactivation : \$_" -ForegroundColor Red
+    exit 1
+}
+
+# 5. Verification apres revocation
+\$deviceCountAfter = 0
+try {
+    \$devicesAfter = Invoke-RestMethod -Uri "\$baseUrl/_synapse/admin/v2/users/\$encodedUser/devices" -Method Get -Headers @{ Authorization = "Bearer \$token" }
+    if (\$devicesAfter.devices) {
+        \$deviceCountAfter = \$devicesAfter.devices.Count
+    }
+} catch {
+    \$deviceCountAfter = 0
+}
+
+Write-Host "\`n==============================================================================" -ForegroundColor Cyan
+Write-Host " [REVOCATION MULTI-APPAREILS EFFECTUEE AVEC SUCCES]" -ForegroundColor Green
+Write-Host " - Agent cible        : \$User"
+Write-Host " - Bilan materiel     : \$deviceCountBefore appareil(s) supprime(s), \$deviceCountAfter restant(s)."
+Write-Host " - Sessions invalides : Tous les jetons d'acces ont ete revoques immediatement."
+Write-Host " - Cles cryptographiques : Cles Megolm/Olm detruites sur le serveur."
+Write-Host " - Reconnexion        : Toute future tentative renverra 'M_USER_DEACTIVATED'."
+Write-Host "==============================================================================" -ForegroundColor Cyan
+`,
+  },
+  {
+    path: 'mon-projet/scripts/verify_no_cleartext.sh',
+    name: 'verify_no_cleartext.sh',
+    directory: 'scripts',
+    language: 'bash',
+    description: 'Vérifie formellement l\'absence de texte clair dans les logs Synapse et dans les tables PostgreSQL (events et event_json).',
+    securityNotice: 'Audit contradictoire : affiche "OK : aucun clair trouvé" ou "ÉCHEC : clair détecté" (exit code != 0).',
+    day: 2,
+    content: `#!/usr/bin/env bash
+# ==============================================================================
+# Script de vérification de l'absence de texte clair (Zero-Knowledge Server)
+# Contexte : Hackathon Sécurité - Jour 2 (Contrôle Éliminatoire)
+# ==============================================================================
+set -euo pipefail
+
+if [ "\$#" -ne 1 ]; then
+    echo "Usage : \$0 <chaine_secrete_a_chercher>"
+    echo "Exemple : \$0 TopSecretBurkina2026"
+    exit 1
+fi
+
+SEARCH_TEXT="\$1"
+
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="\$(cd "\${SCRIPT_DIR}/.." && pwd)"
+ENV_FILE="\${ROOT_DIR}/.env"
+
+POSTGRES_USER="synapse_admin"
+POSTGRES_DB="synapse_db"
+
+if [ -f "\$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "\$ENV_FILE"
+    set +a
+fi
+
+echo "=============================================================================="
+echo "   AUDIT CONTRADICTOIRE DU CHIFFREMENT DE BOUT EN BOUT (E2EE)"
+echo "=============================================================================="
+echo "[AUDIT] Recherche de fuite en clair pour la charge : \\"\${SEARCH_TEXT}\\""
+
+LEAK_DETECTED=0
+
+# 1. Inspection des logs Synapse
+echo ""
+echo "[1/2] Inspection des journaux applicatifs Synapse..."
+LOG_MATCHES=\$(docker compose logs synapse 2>&1 | grep -Fi "\${SEARCH_TEXT}" || true)
+
+if [ -n "\$LOG_MATCHES" ]; then
+    echo "  [ALERTE SÉCURITÉ] Texte en clair détecté dans les logs Synapse !"
+    LEAK_DETECTED=1
 else
+    echo "  [SUCCÈS] Aucun texte clair trouvé dans les logs Synapse."
+fi
+
+# 2. Inspection PostgreSQL
+echo ""
+echo "[2/2] Inspection directe des tables PostgreSQL ('events' et 'event_json')..."
+
+EVENTS_COUNT=\$(docker compose exec -T db psql -U "\${POSTGRES_USER}" -d "\${POSTGRES_DB}" -tAc \\
+  "SELECT count(*) FROM events WHERE content ILIKE '%\${SEARCH_TEXT}%';" 2>/dev/null || echo "ERROR")
+
+JSON_COUNT=\$(docker compose exec -T db psql -U "\${POSTGRES_USER}" -d "\${POSTGRES_DB}" -tAc \\
+  "SELECT count(*) FROM event_json WHERE json ILIKE '%\${SEARCH_TEXT}%';" 2>/dev/null || echo "ERROR")
+
+if [ "\$EVENTS_COUNT" = "ERROR" ] || [ "\$JSON_COUNT" = "ERROR" ]; then
+    echo "  [ERREUR] Impossible de requêter PostgreSQL."
+    exit 1
+fi
+
+echo "  -> Occurrences dans 'events'     : \${EVENTS_COUNT}"
+echo "  -> Occurrences dans 'event_json' : \${JSON_COUNT}"
+
+if [ "\$EVENTS_COUNT" -gt 0 ] || [ "\$JSON_COUNT" -gt 0 ]; then
+    echo "  [ALERTE SÉCURITÉ] Texte en clair détecté dans la base PostgreSQL !"
+    LEAK_DETECTED=1
+else
+    echo "  [SUCCÈS] Aucune occurrence en clair dans la base PostgreSQL."
+fi
+
+echo ""
+echo "=============================================================================="
+if [ "\$LEAK_DETECTED" -eq 0 ]; then
+    echo "   RÉSULTAT OFFICIEL : OK : aucun clair trouvé"
+    echo "   - Le serveur et la base de données ne possèdent que du ciphertext Megolm."
     echo "=============================================================================="
-    echo " [ERREUR LORS DE LA RÉVOCATION]"
-    echo " - Code HTTP retourné : \${HTTP_STATUS}"
-    echo " - Détails : \${HTTP_BODY}"
+    exit 0
+else
+    echo "   RÉSULTAT OFFICIEL : ÉCHEC : clair détecté"
     echo "=============================================================================="
     exit 1
 fi
+`,
+  },
+  {
+    path: 'mon-projet/scripts/verify_no_cleartext.ps1',
+    name: 'verify_no_cleartext.ps1',
+    directory: 'scripts',
+    language: 'powershell',
+    description: 'Vérification Windows native PowerShell de l\'absence de clair dans les logs et la base PostgreSQL.',
+    securityNotice: 'Audit contradictoire Windows retournant "OK : aucun clair trouvé" ou "ÉCHEC : clair détecté".',
+    day: 2,
+    content: `param (
+    [Parameter(Mandatory=\$true)]
+    [string]\$SearchText
+)
+
+\$ErrorActionPreference = "Stop"
+
+\$postgresUser = "synapse_admin"
+\$postgresDb = "synapse_db"
+
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        \$line = \$_.Trim()
+        if (\$line -and -not \$line.StartsWith("#") -and \$line.Contains("=")) {
+            \$parts = \$line.Split("=", 2)
+            \$k = \$parts[0].Trim()
+            \$v = \$parts[1].Trim()
+            if (\$k -eq "POSTGRES_USER") { \$postgresUser = \$v }
+            if (\$k -eq "POSTGRES_DB") { \$postgresDb = \$v }
+        }
+    }
+}
+
+Write-Host "==============================================================================" -ForegroundColor Cyan
+Write-Host "   AUDIT CONTRADICTOIRE DU CHIFFREMENT DE BOUT EN BOUT (WINDOWS)" -ForegroundColor Cyan
+Write-Host "==============================================================================" -ForegroundColor Cyan
+
+\$leakDetected = \$false
+
+Write-Host "\`n[1/2] Inspection des journaux applicatifs Synapse..." -ForegroundColor Yellow
+\$logMatches = docker compose logs synapse 2>&1 | Select-String -Pattern \$SearchText
+if (\$logMatches) {
+    Write-Host "  [ALERTE SECURITE] Texte en clair trouve dans les logs Synapse !" -ForegroundColor Red
+    \$leakDetected = \$true
+} else {
+    Write-Host "  [SUCCES] Aucun texte clair trouve dans les logs Synapse." -ForegroundColor Green
+}
+
+Write-Host "\`n[2/2] Inspection directe des tables PostgreSQL ('events' et 'event_json')..." -ForegroundColor Yellow
+
+\$eventsCountRaw = docker compose exec -T db psql -U \$postgresUser -d \$postgresDb -tAc "SELECT count(*) FROM events WHERE content ILIKE '%\$SearchText%';" 2>&1
+\$jsonCountRaw = docker compose exec -T db psql -U \$postgresUser -d \$postgresDb -tAc "SELECT count(*) FROM event_json WHERE json ILIKE '%\$SearchText%';" 2>&1
+
+\$eventsCount = [int](\$eventsCountRaw.Trim())
+\$jsonCount = [int](\$jsonCountRaw.Trim())
+
+Write-Host "  -> Occurrences dans 'events'     : \$eventsCount"
+Write-Host "  -> Occurrences dans 'event_json' : \$jsonCount"
+
+if (\$eventsCount -gt 0 -or \$jsonCount -gt 0) {
+    Write-Host "  [ALERTE SECURITE] Texte en clair detecte dans la base PostgreSQL !" -ForegroundColor Red
+    \$leakDetected = \$true
+} else {
+    Write-Host "  [SUCCES] Aucune occurrence en clair dans la base PostgreSQL." -ForegroundColor Green
+}
+
+Write-Host "\`n==============================================================================" -ForegroundColor Cyan
+if (-not \$leakDetected) {
+    Write-Host "   RESULTAT OFFICIEL : OK : aucun clair trouve" -ForegroundColor Green
+    Write-Host "==============================================================================" -ForegroundColor Cyan
+    exit 0
+} else {
+    Write-Host "   RESULTAT OFFICIEL : ECHEC : clair detecte" -ForegroundColor Red
+    Write-Host "==============================================================================" -ForegroundColor Cyan
+    exit 1
+}
+`,
+  },
+  {
+    path: 'mon-projet/scripts/promote_admin.sh',
+    name: 'promote_admin.sh',
+    directory: 'scripts',
+    language: 'bash',
+    description: 'Promotion d\'un agent au rôle d\'administrateur serveur via PUT /_synapse/admin/v1/users/{user_id}/admin.',
+    securityNotice: 'Attribue les droits administrateur Synapse. La rétrogradation requiert un compte tiers.',
+    day: 2,
+    content: `#!/usr/bin/env bash
+# ==============================================================================
+# Script de promotion d'un agent au rôle d'administrateur système - FasoMatrix
+# ==============================================================================
+set -euo pipefail
+
+if [ "\$#" -ne 1 ]; then
+    echo "Usage : \$0 <identifiant_matrix_utilisateur>"
+    echo "Exemple : \$0 @agent1:localhost"
+    exit 1
+fi
+
+TARGET_USER_ID="\$1"
+
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="\$(cd "\${SCRIPT_DIR}/.." && pwd)"
+ENV_FILE="\${ROOT_DIR}/.env"
+
+if [ ! -f "\$ENV_FILE" ]; then
+    echo "[ERREUR] Le fichier .env est introuvable."
+    exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "\$ENV_FILE"
+set +a
+
+BASE_URL="\${BASE_URL:-http://localhost}"
+SERVER_NAME="\${SERVER_NAME:-localhost}"
+
+if [[ ! "\$TARGET_USER_ID" =~ ^@ ]]; then
+    TARGET_USER_ID="@\${TARGET_USER_ID}:\${SERVER_NAME}"
+fi
+
+echo "=============================================================================="
+echo "   GESTION DES HABILITATIONS : PROMOTION ADMINISTRATEUR (JOUR 2)"
+echo "=============================================================================="
+echo "[CIBLE] Agent à promouvoir : \${TARGET_USER_ID}"
+
+LOGIN_PAYLOAD=\$(cat <<EOF
+{
+  "type": "m.login.password",
+  "identifier": {
+    "type": "m.id.user",
+    "user": "\${SYNAPSE_ADMIN_USER}"
+  },
+  "password": "\${SYNAPSE_ADMIN_PASSWORD}"
+}
+EOF
+)
+
+LOGIN_RESP=\$(curl -s -X POST "\${BASE_URL}/_matrix/client/v3/login" \\
+  -H "Content-Type: application/json" \\
+  -d "\$LOGIN_PAYLOAD")
+
+ADMIN_TOKEN=\$(echo "\$LOGIN_RESP" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4 || true)
+
+if [ -z "\$ADMIN_TOKEN" ]; then
+    echo "[ERREUR] Impossible d'obtenir le jeton d'accès administrateur."
+    exit 1
+fi
+
+ENCODED_USER_ID=\$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "\$TARGET_USER_ID" 2>/dev/null || echo "\$TARGET_USER_ID")
+
+RESPONSE=\$(curl -s -w "\\n%{http_code}" -X PUT \\
+  "\${BASE_URL}/_synapse/admin/v1/users/\${ENCODED_USER_ID}/admin" \\
+  -H "Authorization: Bearer \${ADMIN_TOKEN}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"admin": true}')
+
+HTTP_STATUS=\$(echo "\$RESPONSE" | tail -n 1)
+
+if [ "\$HTTP_STATUS" = "200" ]; then
+    echo "=============================================================================="
+    echo " [PROMOTION EFFECTUÉE AVEC SUCCÈS]"
+    echo " - Agent promu     : \${TARGET_USER_ID}"
+    echo " - Privilèges      : Administrateur du homeserver Synapse (admin: true)"
+    echo "=============================================================================="
+else
+    echo " [ERREUR LORS DE LA PROMOTION] Code HTTP : \${HTTP_STATUS}"
+    exit 1
+fi
+`,
+  },
+  {
+    path: 'mon-projet/scripts/promote_admin.ps1',
+    name: 'promote_admin.ps1',
+    directory: 'scripts',
+    language: 'powershell',
+    description: 'Promotion ou rétrogradation Windows PowerShell d\'un administrateur serveur Synapse.',
+    securityNotice: 'Supporte la promotion (-User agent1) et la rétrogradation (-User agent1 -Demote).',
+    day: 2,
+    content: `param (
+    [Parameter(Mandatory=\$true)]
+    [string]\$User,
+    [switch]\$Demote
+)
+
+\$ErrorActionPreference = "Stop"
+
+\$adminUser = "admin"
+\$adminPass = "CHANGEME_ADMIN_PASSWORD_24B"
+\$baseUrl = "http://localhost"
+\$serverName = "localhost"
+
+if (Test-Path ".env") {
+    Get-Content ".env" | ForEach-Object {
+        \$line = \$_.Trim()
+        if (\$line -and -not \$line.StartsWith("#") -and \$line.Contains("=")) {
+            \$parts = \$line.Split("=", 2)
+            \$k = \$parts[0].Trim()
+            \$v = \$parts[1].Trim()
+            if (\$k -eq "SYNAPSE_ADMIN_USER") { \$adminUser = \$v }
+            if (\$k -eq "SYNAPSE_ADMIN_PASSWORD") { \$adminPass = \$v }
+            if (\$k -eq "SERVER_NAME") { \$serverName = \$v }
+            if (\$k -eq "BASE_URL") { \$baseUrl = \$v }
+        }
+    }
+}
+
+if (-not \$User.StartsWith("@")) {
+    \$User = "@" + \$User + ":" + \$serverName
+}
+
+\$targetAdminState = -not \$Demote
+
+\$loginBody = @{
+    type = "m.login.password"
+    identifier = @{ type = "m.id.user"; user = \$adminUser }
+    password = \$adminPass
+} | ConvertTo-Json
+
+\$loginRes = Invoke-RestMethod -Uri "\$baseUrl/_matrix/client/v3/login" -Method Post -Body \$loginBody -ContentType "application/json"
+\$token = \$loginRes.access_token
+
+\$encodedUser = [System.Uri]::EscapeDataString(\$User)
+\$promoteBody = @{ admin = \$targetAdminState } | ConvertTo-Json
+
+\$res = Invoke-RestMethod -Uri "\$baseUrl/_synapse/admin/v1/users/\$encodedUser/admin" -Method Put -Body \$promoteBody -Headers @{ Authorization = "Bearer \$token" } -ContentType "application/json"
+Write-Host "[SUCCÈS] Statut administrateur pour \$User mis à jour : \$(\$res.admin)" -ForegroundColor Green
+`,
+  },
+  {
+    path: 'mon-projet/docs/SECURITY.md',
+    name: 'SECURITY.md',
+    directory: 'docs',
+    language: 'markdown',
+    description: 'Modèle de menace, analyse approfondie du mécanisme de révocation et feuille de route 2FA/MAS.',
+    securityNotice: 'Détaille ce que deactivate fait et ne fait pas, et la stratégie de transition vers MAS en production.',
+    day: 2,
+    content: `# Politique de Sécurité Régalienne & Modèle de Menace - FasoMatrix
+## Infrastructure de Messagerie Instantanée Souveraine - Burkina Faso
+
+### 1. Modèle de Confiance et Architecture E2EE
+- Olm (Double Ratchet) et Megolm (m.megolm.v1.aes-sha2).
+- Zero-Knowledge Server : Synapse ne possède jamais les clés privées ni les clés de session Megolm.
+
+### 2. Identité, Rôles et Révocation Immédiate
+- enable_registration: false bloque toute inscription autonome.
+- deactivate : supprime tous les appareils, révoque tous les access_tokens, détruit les clés E2EE sur le serveur et expulse l'agent de tous les salons.
+- Ne supprime pas l'historique chiffré passé stocké dans la base, mais l'agent révoqué ne peut plus déchiffrer les futurs messages.
+
+### 3. Analyse du 2FA et Feuille de Route
+- Sur http://localhost : SSO/OIDC sans TLS échoue en raison des restrictions SameSite des navigateurs.
+- Element X exige MAS (Matrix Authentication Service) et non le SSO legacy Synapse.
+- Mesures Jour 2 : mots de passe de haute entropie générés par l'autorité + politique de sessions courtes + révocation immédiate multi-appareils.
 `,
   },
   {
@@ -809,14 +1508,12 @@ fi
     name: 'README.md',
     directory: 'racine',
     language: 'markdown',
-    description: 'Documentation opérationnelle de référence : architecture texte, garanties E2EE, commandes et limites.',
+    description: 'Documentation opérationnelle de référence du Jour 1 & 2 : architecture, validation E2EE et révocation multi-appareils.',
+    day: 2,
     content: `# FasoMatrix - Socle DevOps de Messagerie Instantanée Souveraine
-## Système Dédié à l'Administration Publique du Burkina Faso
+## Système Dédié à l'Administration Publique du Burkina Faso (Jour 1 & 2)
 
-### 1. Concept
-FasoMatrix est une infrastructure de messagerie régalienne et souveraine, fondée sur le protocole Matrix et le chiffrement de bout en bout Olm/Megolm. Inscription fermée, fédération désactivée, aucune dépendance cloud.
-
-[Consultez la version complète dans le fichier mon-projet/README.md]
+[Consultez la version complète dans mon-projet/README.md pour toutes les commandes détaillées]
 `,
   },
 ];

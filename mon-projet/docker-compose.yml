@@ -1,9 +1,9 @@
 # ==============================================================================
 # Orchestration souveraine Matrix / Synapse pour l'Administration Publique
-# Contexte : Hackathon Sécurité - Déploiement "One-Command"
+# Contexte : Hackathon Sécurité - Jour 1 "Socle qui tourne"
 # ==============================================================================
 # Architecture réseau :
-#   - Seul NGINX expose un port vers l'hôte (port 80 ou ${WEB_PORT}).
+#   - Seul NGINX expose un port vers l'hôte (port ${NGINX_HTTP_PORT:-80}).
 #   - PostgreSQL (db) est strictement cantonné au réseau privé Docker 'matrix_internal'.
 #   - Synapse communique uniquement avec NGINX et PostgreSQL.
 #   - Fédération Matrix désactivée, Inscription libre désactivée.
@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      # Synapse exige une collation C et un encodage UTF-8 pour les index Matrix
+      # Synapse exige un encodage UTF-8 et une collation C
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - db_data:/var/lib/postgresql/data
@@ -44,7 +44,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "/synapse_bootstrap/entrypoint.sh"]
+    entrypoint: ["/bin/sh", "-c", "python3 -c 'open(\"/tmp/entrypoint.sh\",\"w\").write(open(\"/synapse_bootstrap/entrypoint.sh\",\"rb\").read().decode(\"utf-8-sig\").replace(\"\\r\\n\",\"\\n\"))' && chmod +x /tmp/entrypoint.sh && exec /bin/sh /tmp/entrypoint.sh"]
     environment:
       SERVER_NAME: ${SERVER_NAME}
       BASE_URL: ${BASE_URL}
@@ -60,7 +60,6 @@ services:
       - ./synapse/entrypoint.sh:/synapse_bootstrap/entrypoint.sh:ro
     networks:
       - matrix_internal
-    # Synapse écoute sur le port 8008 uniquement au sein du réseau Docker 'matrix_internal'.
 
   # ----------------------------------------------------------------------------
   # 3. Client Web Officiel Element
@@ -73,7 +72,6 @@ services:
       - ./element/config.json:/app/config.json:ro
     networks:
       - matrix_internal
-    # Fichiers statiques servis en interne à NGINX.
 
   # ----------------------------------------------------------------------------
   # 4. Reverse Proxy Nginx - Point d'entrée unique de la souveraineté
@@ -82,7 +80,7 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-80}:80"
+      - "${NGINX_HTTP_PORT:-80}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
