@@ -71,11 +71,3 @@ Le système utilise les primitives cryptographiques formellement prouvées du st
 
 ---
 
-### 6. Niveau d'Engagement & Répartition des Rôles
-
-- **Niveau d'engagement de l'équipe :** Sprint intensif validé en 2 phases majeures (Jour 1 : socle et E2EE ; Jour 2 : identités, révocation atomique et audit). Dépôt Git documenté avec commits progressifs et reproductibles.
-- **Répartition des rôles au sein de l'équipe :**
-  - **Chef d'équipe / Ingénieur DevOps :** Architecture Docker Compose, durcissement Nginx, automatisation PowerShell/Bash, reproductibilité de l'environnement.
-  - **Spécialiste Sécurité & Cryptographie :** Configuration Synapse (`homeserver.yaml`), validation des protocoles Megolm, politique de gestion des clés et Zero-Knowledge.
-  - **Développeur Intégration & Données :** Implémentation des scripts d'administration (`revoke_user`, `verify_no_cleartext`, `promote_admin`), requêtage PostgreSQL.
-  - **Assurance Qualité & Documentation :** Rédaction des notes techniques de sécurité, tests contradictoires multi-navigateurs et production de la vidéo de démonstration.
