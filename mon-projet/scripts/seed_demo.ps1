@@ -83,14 +83,20 @@ $loginBody = @{
     type = "m.login.password"
     identifier = @{ type = "m.id.user"; user = $adminUser }
     password = $adminPass
-} | ConvertTo-Json
+} | ConvertTo-Json -Depth 3
 
 try {
     $loginRes = Invoke-RestMethod -Uri "$baseUrl/_matrix/client/v3/login" -Method Post -Body $loginBody -ContentType "application/json"
     $token = $loginRes.access_token
     Write-Host "  [SUCCES] Authentification reussie. Token admin obtenu." -ForegroundColor Green
 } catch {
-    Write-Host "  [ERREUR] Impossible de joindre l'API Synapse a $baseUrl" -ForegroundColor Red
+    $detail = $_.Exception.Message
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+        $detail += " : " + $_.ErrorDetails.Message
+    }
+    Write-Host "  [ERREUR AUTHENTIFICATION] Echec de la connexion pour l'utilisateur '$adminUser' : $detail" -ForegroundColor Red
+    Write-Host "  [CAUSE] La base de donnees existante contient deja l'utilisateur avec un autre mot de passe." -ForegroundColor Yellow
+    Write-Host "  -> Pour reinitialiser completement la base : docker compose down -v puis docker compose up -d" -ForegroundColor Yellow
     exit 1
 }
 

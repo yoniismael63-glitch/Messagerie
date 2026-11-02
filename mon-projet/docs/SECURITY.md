@@ -68,3 +68,39 @@ Lors du déploiement en production sous domaine régalien officiel (ex: `message
 1. Activation de la terminaison TLS 1.3 sur Nginx avec certificat x509 délivré par la PKI nationale.
 2. Déploiement de **Matrix Authentication Service (MAS)** couplé à l'annuaire d'État (Keycloak / OpenLDAP).
 3. Activation obligatoire du 2FA par clé matérielle FIDO2 / WebAuthn ou jeton TOTP souverain pour l'ensemble des hauts fonctionnaires et agents accrédités.
+
+---
+
+### 4. Actes de Service, Main Courante et Suppléance (Jour 3)
+
+#### A. Principe du Bot Aveugle (Blind Bot Architecture)
+- **Zéro Clé Megolm** : Le bot de supervision (`@bot:localhost`) n'est **jamais** membre du salon chiffré `#actes-service`. Il ne reçoit aucune clé de session Megolm et ne possède aucun algorithme de déchiffrement. Même compromis, le bot ne peut révéler aucun contenu d'instruction ou de note de service.
+- **Règle d'auto-exclusion** : Au démarrage et à chaque synchronisation, le bot vérifie la liste de ses salons rejoints. S'il est invité par erreur dans `#actes-service`, il quitte immédiatement le salon (`room_leave`) et émet une alerte de sécurité.
+
+#### B. Métadonnées Visibles par le Serveur & Mesures de Minimisation
+Pour assurer le suivi des échéances sans compromettre le secret métier :
+- **Métadonnées transmises dans `#actes-coordination`** :
+  `acte_id` (UUID opaque), `destinataire` (identifiant Matrix), `deadline` (ISO 8601), `requires_ack` (`true`), `ack_type` (`hash`), `room_id`, `event_id_chiffre`, `escalation_level`.
+- **Informations strictement exclues des meta-events** :
+  Aucun `objet`, aucun `corps`, aucune `classification` ni texte métier. Le serveur et le bot ignorent totalement l'objet de l'acte.
+- **Métadonnées de suppléance** :
+  `delegation_id`, `delegant`, `delegataire`, `scope` (`read_new_acts`), `purpose`, `expires_at`.
+
+#### C. Accusé Probant par Hash SHA-256
+- L'accusé de réception (`com.example.acte_service.ack`) lie mathématiquement l'accusé à la charge chiffrée reçue :
+  $$\text{ack\_hash} = \text{"sha256:"} + \text{SHA256}(\text{ciphertext})$$
+- Le bot récupère l'événement chiffré via l'API officielle `GET /_matrix/client/v3/rooms/{roomId}/event/{eventId}`, recalcule l'empreinte et ne valide la transition vers `accuse` que si l'égalité est exacte au caractère près.
+- **Limite formelle documentée** : Ce mécanisme apporte une preuve cryptographique de non-répudiation sur la réception du paquet chiffré exact. Il ne constitue pas une signature électronique qualifiée au sens légal eIDAS/RGS (qui exigerait une PKI matérielle de signature individuelle).
+
+#### D. Suppléance Chiffrée et Isolation Antérieure
+- **Sous-salon dédié** : Lorsqu'un mandat avec `scope == "read_new_acts"` est établi, le bot crée un sous-salon chiffré neuf (`#actes-delegation-<id>`).
+- **Garantie anti-fuite d'historique** : N'ayant jamais été membre du salon `#actes-service` historique, le suppléant (`agent3`) ne reçoit aucune clé Megolm passée. Il lui est cryptographiquement impossible de déchiffrer les actes antérieurs au mandat.
+- **Révocation immédiate et expiration persistante** :
+  - À l'expiration du délai (`expires_at`), le suppléant est expulsé du sous-salon (`room_kick`).
+  - L'administrateur peut révoquer le mandat à tout instant via `revoke_delegation.sh`.
+  - L'état est conservé dans `data/delegations.jsonl` et rechargé au démarrage du bot, garantissant le traitement des expirations même après une panne serveur.
+
+#### E. Ce que l'Administrateur peut voir
+- L'administrateur a accès à la **main courante complète** (`data/main_courante.jsonl` via `list_actes.sh`) et aux alertes d'escalade dans `#actes-admin`.
+- L'administrateur voit le respect ou le dépassement des délais administratifs, mais **ne peut en aucun cas lire le contenu chiffré des actes** échangés entre les agents opérationnels.
+

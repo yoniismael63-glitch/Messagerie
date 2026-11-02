@@ -9,7 +9,7 @@
     }
   },
   "brand": "FasoMatrix - Administration Publique du Burkina Faso",
-  "disable_custom_urls": true,
+  "disable_custom_urls": false,
   "disable_guests": true,
   "disable_3pid_login": true,
   "default_theme": "dark",

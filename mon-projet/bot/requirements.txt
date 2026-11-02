@@ -1,0 +1,6 @@
+# Dépendances officielles pour le Bot d'Escalade et de Suppléance - FasoMatrix (Jour 3)
+# Aucune bibliothèque de chiffrement : le bot ne déchiffre jamais et ne détient aucune clé Megolm.
+matrix-nio>=0.24.0
+python-dateutil>=2.9.0
+aiohttp>=3.9.0
+requests>=2.31.0

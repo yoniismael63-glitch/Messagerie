@@ -89,6 +89,32 @@ services:
     networks:
       - matrix_internal
 
+  # ----------------------------------------------------------------------------
+  # 5. Bot d'Escalade et de Gestion de Suppléance (Jour 3)
+  # ----------------------------------------------------------------------------
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      synapse:
+        condition: service_started
+    environment:
+      BOT_USER: ${BOT_USER:-bot}
+      BOT_PASSWORD: ${BOT_PASSWORD:-CHANGEME_BOT_PASSWORD_24B}
+      MATRIX_URL: http://synapse:8008
+      SYNAPSE_ADMIN_USER: ${SYNAPSE_ADMIN_USER:-admin}
+      SYNAPSE_ADMIN_PASSWORD: ${SYNAPSE_ADMIN_PASSWORD:-AdminSecret2026!}
+      COORDINATION_ROOM_ID: ${COORDINATION_ROOM_ID:-}
+      ADMIN_ROOM_ID: ${ADMIN_ROOM_ID:-}
+      ACTES_SERVICE_ROOM_ID: ${ACTES_SERVICE_ROOM_ID:-}
+      DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    networks:
+      - matrix_internal
+
 # ------------------------------------------------------------------------------
 # Volumes persistants isolés
 # ------------------------------------------------------------------------------

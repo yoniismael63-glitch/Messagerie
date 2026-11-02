@@ -265,3 +265,136 @@ Pour la démonstration locale sur `http://localhost`, l'intégration d'un SSO/OI
 3. **Mesures compensatoires Jour 2** : Mots de passe à haute entropie (générés par l'autorité) + révocation immédiate multi-appareils + isolation réseau totale de la base.
 Consultez `docs/SECURITY.md` pour le plan détaillé de déploiement MAS / FIDO2 en production.
 
+---
+
+## JOUR 3 : ACTES DE SERVICE CHIFFRÉS & SUPPLÉANCE TEMPORELLE
+
+Le Jour 3 enrichit le socle régalien de deux innovations combinées pour l'administration publique :
+1. **L'Acte de Service Chiffré** avec main courante persistante, accusé probant par hash SHA-256 et escalade automatique à deux niveaux sans lecture de contenu.
+2. **La Suppléance Chiffrée** avec mandat temporel explicite, expiration automatique persistante et routage vers un sous-salon isolé garantissant qu'aucun historique passé n'est accessible au suppléant.
+
+---
+
+### Architecture des Salons (Jour 3)
+
+```
+[ Salon Chiffré Régalien ]
+#actes-service (Megolm E2EE)
+Membres : @agent1, @agent2, @admin
+🔒 CONTENU DU MESSAGE CHIFFRÉ
+⚠️ LE BOT EST STRICTEMENT EXCLU
+            │
+            │ (Émission d'un acte)
+            ▼
+[ Salon Non Chiffré de Métadonnées ]
+#actes-coordination
+Membres : @bot, @admin, @agent1, @agent2, @agent3
+📋 Événement com.example.acte_service.meta (acte_id, deadline, destinataire)
+📋 Événement com.example.acte_service.ack (acte_id, ack_hash SHA-256)
+📋 Événement com.example.delegation (mandat suppléance, expiration)
+            │
+            ├── (Absence d'accusé à l'échéance)
+            ▼
+[ Salon de Supervision Non Chiffré ]
+#actes-admin
+Membres : @bot, @admin
+🚨 Alerte d'escalade N1 / N2 (Zéro objet, Zéro corps)
+            │
+            └── (Création mandat de suppléance)
+            ▼
+[ Sous-Salon Chiffré Dédié ]
+#actes-delegation-<id> (Megolm E2EE)
+Membres : @agent3 (suppléant), @admin
+🔒 Nouveaux actes routés pendant le mandat
+🚫 ZÉRO ACCÈS À L'HISTORIQUE ANTÉRIEUR DE #actes-service
+```
+
+---
+
+### Tableau : Ce que le Bot Voit et Ne Voit Pas
+
+| Élément | Visible par le Bot ? | Raison de Sécurité / Architecture |
+| :--- | :---: | :--- |
+| **Identifiant d'acte (`acte_id`)** | **OUI** | Métadonnée opaque d'indexation dans la main courante. |
+| **Destinataire & Échéance (`deadline`)** | **OUI** | Nécessaire pour déclencher l'escalade automatique en cas de retard. |
+| **Hash SHA-256 du ciphertext (`ack_hash`)**| **OUI** | Preuve de réception comparée au hash du bloc chiffré stocké sur Synapse. |
+| **Statut du mandat de suppléance** | **OUI** | Permet d'expulser le suppléant à l'expiration (`expires_at`). |
+| **Objet de l'acte de service** | ❌ **NON** | Exclu des meta-événements. Présent uniquement dans le ciphertext chiffré. |
+| **Corps textuel / Ordre de mission** | ❌ **NON** | Totalement chiffré en Megolm de terminal à terminal. |
+| **Clés de déchiffrement Megolm** | ❌ **NON** | Le bot n'est jamais invité dans `#actes-service`. Clés absentes. |
+| **Historique antérieur des discussions** | ❌ **NON** | Le suppléant et le bot sont confinés hors du salon historique. |
+
+---
+
+### Procédures de Validation du Jour 3
+
+#### 1. Initialisation des Salons et du Bot
+```bash
+# 1. Démarrer l'ensemble des conteneurs incluant le bot
+docker compose up -d --build
+
+# 2. Initialiser les salons Jour 3 et le compte @bot:localhost
+./scripts/seed_acte_demo.sh
+# (Sur Windows : powershell -ExecutionPolicy Bypass -File .\scripts\seed_acte_demo.ps1)
+```
+
+#### 2. Test de l'Escalade Automatique sans Fuite de Clair
+1. Émettre un acte avec une échéance courte (ex: 2 minutes) :
+   ```bash
+   ./scripts/send_acte.sh agent1 @agent2:localhost "Ordre Alpha" "Déploiement sur zone" +2m
+   ```
+2. **Ne pas accuser réception** avec `agent2`.
+3. Consulter la main courante :
+   ```bash
+   ./scripts/list_actes.sh
+   ```
+   *Statut initial : `envoye`.*
+4. Après 2 minutes, consulter à nouveau :
+   *Statut passé à : `escalade` (escalation_level: 1).*
+5. Constater dans `#actes-admin` (ou les logs du bot) que l'alerte transmise au superviseur mentionne `acte_id`, `destinataire` et `deadline`, mais **aucun objet ni corps**.
+
+#### 3. Test de l'Accusé Probant par Hash SHA-256
+1. Émettre un nouvel acte :
+   ```bash
+   ./scripts/send_acte.sh agent1 @agent2:localhost "Note Urgente" "Consignes confidentielles" +5m
+   ```
+   *(Noter l'event_id_chiffre et le room_id affichés).*
+2. `agent2` émet son accusé probant :
+   ```bash
+   ./scripts/send_ack.sh agent2 <event_id_chiffre> <room_id> <acte_id>
+   ```
+3. Vérifier la main courante :
+   ```bash
+   ./scripts/list_actes.sh
+   ```
+   *Statut : `accuse` (ou `accuse_apres_escalade`).*
+4. **Test négatif (Tentative d'altération) :** Si un attaquant falsifie le hash SHA-256, le bot rejette l'accusé (`[REJET SÉCURITÉ] Hash non conforme`) et l'acte reste au statut antérieur.
+
+#### 4. Test de la Suppléance Chiffrée (Mandat Temporel)
+1. L'administrateur octroie une suppléance à `agent3` pour suppléer `agent1` pendant 10 minutes :
+   ```bash
+   ./scripts/delegate_role.sh admin agent1 agent3 read_new_acts "Continuité de commandement" 10m
+   ```
+2. Vérifier la création du sous-salon chiffré dans le registre :
+   ```bash
+   ./scripts/list_delegations.sh
+   ```
+3. `agent1` émet un nouvel acte :
+   ```bash
+   ./scripts/send_acte.sh agent1 @agent2:localhost "Instruction Suppléance" "Ordre relayé" +3m
+   ```
+4. `agent3` reçoit la notification dans son sous-salon dédié, mais **ne peut accéder à aucun acte historique antérieur** de `#actes-service`.
+5. Révocation anticipée du mandat par l'administrateur :
+   ```bash
+   ./scripts/revoke_delegation.sh <delegation_id>
+   ```
+6. Vérifier que `agent3` est immédiatement expulsé du sous-salon et que le mandat passe au statut `revoquee` dans `data/delegations.jsonl`.
+
+---
+
+### Limites Connues et Hypothèses Documentées
+- **Portée probante du hash** : L'empreinte SHA-256 sur le ciphertext garantit mathématiquement que l'accusé se réfère au paquet chiffré précis reçu. Elle constitue une trace non-répudiable d'accusé de réception technique, mais ne remplace pas une signature électronique individuelle qualifiée eIDAS.
+- **Métadonnées de coordination** : Les événements `com.example.acte_service.meta` transitent en clair dans `#actes-coordination`. Pour garantir la confidentialité, ils ne contiennent aucun champ textuel métier (pas d'objet, pas de corps).
+- **Routage des actes chiffrés sous suppléance** : Le bot ne possédant aucune clé Megolm, il ne peut pas dupliquer la charge chiffrée dans le sous-salon. Il répercute le meta-événement d'instruction ; l'émetteur habilité transmet le flux chiffré dans le sous-salon dédié.
+
+

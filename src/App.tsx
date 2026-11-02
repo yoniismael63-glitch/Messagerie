@@ -28,14 +28,21 @@ import {
   Clock,
   Activity,
   ShieldAlert,
+  Flame,
+  Award,
+  GraduationCap,
 } from 'lucide-react';
 import { PROJECT_FILES, ProjectFile } from './data/projectFiles.ts';
 import { auditHomeserverConfig, auditDockerCompose, validateMatrixUserId } from './utils/matrixValidator.ts';
+import Jour3Innovations from './components/Jour3Innovations.tsx';
+import HackathonDossier from './components/HackathonDossier.tsx';
+import PedagogicalGuide from './components/PedagogicalGuide.tsx';
+import ManualFonctionnalites from './components/ManualFonctionnalites.tsx';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'guide' | 'files' | 'audit' | 'architecture' | 'lab' | 'jour2' | 'secrets'>('jour2');
+  const [activeTab, setActiveTab] = useState<'jour3' | 'manuel' | 'pedagogique' | 'dossier' | 'guide' | 'files' | 'audit' | 'architecture' | 'lab' | 'jour2' | 'secrets'>('jour3');
   const [osType, setOsType] = useState<'windows' | 'linux'>('windows');
-  const [fileFilter, setFileFilter] = useState<'all' | 'day1' | 'day2'>('all');
+  const [fileFilter, setFileFilter] = useState<'all' | 'day1' | 'day2' | 'day3'>('all');
   const [selectedFile, setSelectedFile] = useState<ProjectFile>(PROJECT_FILES[3]); // docker-compose.yml default
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
   const [copiedContent, setCopiedContent] = useState(false);
@@ -282,6 +289,59 @@ echo "[SUCCÈS] Arborescence mon-projet/ créée avec succès !"
         {/* Navigation Tabs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto border-t border-slate-800/80 gap-1 text-xs font-medium">
           <button
+            onClick={() => setActiveTab('jour3')}
+            className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'jour3'
+                ? 'border-amber-400 text-amber-300 font-bold bg-amber-500/15'
+                : 'border-transparent text-amber-400/80 hover:text-amber-200 hover:border-amber-700'
+            }`}
+          >
+            <Flame className="w-4 h-4 text-amber-400" />
+            <span>Jour 3 : Actes & Suppléance (Innovations)</span>
+            <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-mono uppercase font-bold">
+              NOUVEAU
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('dossier')}
+            className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'dossier'
+                ? 'border-indigo-400 text-indigo-300 font-bold bg-indigo-500/15'
+                : 'border-transparent text-indigo-300/80 hover:text-indigo-100 hover:border-indigo-700'
+            }`}
+          >
+            <Award className="w-4 h-4 text-indigo-400" />
+            <span>Dossier Hackathon (5 Pièces)</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('manuel')}
+            className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'manuel'
+                ? 'border-emerald-400 text-emerald-300 font-bold bg-emerald-500/15'
+                : 'border-transparent text-emerald-400/80 hover:text-emerald-200 hover:border-emerald-700'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Manuel Fonctionnel (PDF)</span>
+            <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.2 rounded font-mono uppercase font-bold">
+              PDF
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('pedagogique')}
+            className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'pedagogique'
+                ? 'border-teal-400 text-teal-300 font-bold bg-teal-500/15'
+                : 'border-transparent text-teal-300/80 hover:text-teal-100 hover:border-teal-700'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 text-teal-400" />
+            <span>Livre Pédagogique (Guide)</span>
+            <span className="text-[9px] bg-teal-500/20 text-teal-300 border border-teal-500/40 px-1.5 py-0.2 rounded font-mono uppercase font-bold">
+              ÉQUIPE
+            </span>
+          </button>
+          <button
             onClick={() => setActiveTab('guide')}
             className={`py-2.5 px-3 border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'guide'
@@ -363,6 +423,18 @@ echo "[SUCCÈS] Arborescence mon-projet/ créée avec succès !"
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6">
+        {/* TAB JOUR 3: INNOVATIONS RÉGALIENNES */}
+        {activeTab === 'jour3' && <Jour3Innovations osType={osType} />}
+
+        {/* TAB DOSSIER: LES 5 PIÈCES OFFICIELLES DU HACKATHON */}
+        {activeTab === 'dossier' && <HackathonDossier />}
+
+        {/* TAB MANUEL FONCTIONNEL & FONCTIONNALITÉS (PDF) */}
+        {activeTab === 'manuel' && <ManualFonctionnalites />}
+
+        {/* TAB LIVRE PÉDAGOGIQUE & GUIDE D'EXPLICATION (PDF) */}
+        {activeTab === 'pedagogique' && <PedagogicalGuide />}
+
         {/* TAB 0: STEP-BY-STEP USER GUIDE */}
         {activeTab === 'guide' && (
           <div className="space-y-6">
@@ -717,10 +789,26 @@ echo "[SUCCÈS] Arborescence mon-projet/ créée avec succès !"
                   >
                     Jour 2 ({PROJECT_FILES.filter(f => f.day === 2).length})
                   </button>
+                  <button
+                    onClick={() => setFileFilter('day3')}
+                    className={`flex-1 py-1 rounded text-center font-medium transition ${
+                      fileFilter === 'day3' ? 'bg-amber-950 text-amber-300 border border-amber-800 font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Jour 3 ({PROJECT_FILES.filter(f => f.day === 3).length})
+                  </button>
                 </div>
 
                 <div className="space-y-1">
-                  {PROJECT_FILES.filter(f => (fileFilter === 'all' ? true : fileFilter === 'day1' ? f.day === 1 : f.day === 2)).map(file => {
+                  {PROJECT_FILES.filter(f => (
+                    fileFilter === 'all'
+                      ? true
+                      : fileFilter === 'day1'
+                      ? f.day === 1
+                      : fileFilter === 'day2'
+                      ? f.day === 2
+                      : f.day === 3
+                  )).map(file => {
                     const isSelected = selectedFile.path === file.path;
                     return (
                       <button
@@ -737,8 +825,14 @@ echo "[SUCCÈS] Arborescence mon-projet/ créée avec succès !"
                           <span className="truncate">{file.path.replace('mon-projet/', '')}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-sans font-bold uppercase ${file.day === 2 ? 'bg-indigo-950 text-indigo-400 border border-indigo-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}`}>
-                            {file.day === 2 ? 'J2' : 'J1'}
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-sans font-bold uppercase ${
+                            file.day === 3
+                              ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                              : file.day === 2
+                              ? 'bg-indigo-950 text-indigo-400 border border-indigo-800'
+                              : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          }`}>
+                            {file.day === 3 ? 'J3' : file.day === 2 ? 'J2' : 'J1'}
                           </span>
                           {file.securityNotice && (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" title="Contient des règles d'étanchéité" />
