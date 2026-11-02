@@ -38,7 +38,7 @@ export default function ManualFonctionnalites() {
 
   const handleDownloadMarkdown = () => {
     const manualFile = PROJECT_FILES.find(f => f.name === 'MANUEL_FONCTIONNEMENT_FONCTIONNALITES.md');
-    const content = manualFile ? manualFile.content : '';
+    const content = manualFile?.content || (document.getElementById('manual-content')?.innerText || 'MANUEL FASOMATRIX');
     const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -52,7 +52,7 @@ export default function ManualFonctionnalites() {
 
   const handleCopyMarkdown = () => {
     const manualFile = PROJECT_FILES.find(f => f.name === 'MANUEL_FONCTIONNEMENT_FONCTIONNALITES.md');
-    const content = manualFile ? manualFile.content : '';
+    const content = manualFile?.content || (document.getElementById('manual-content')?.innerText || 'MANUEL FASOMATRIX');
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);

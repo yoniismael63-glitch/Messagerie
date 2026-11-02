@@ -1,8 +1,31 @@
+# Dépendances et builds
 node_modules/
-build/
 dist/
+build/
 coverage/
-.DS_Store
-*.log
-.env*
+
+# Variables d'environnement et secrets
+.env
+.env.local
+.env.*.local
 !.env.example
+
+# Données Synapse, clés privées et volumes persistants
+data/
+synapse/data/
+*.signing.key
+media_store/
+
+# Fichiers Python temporaires
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Fichiers système et logs
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

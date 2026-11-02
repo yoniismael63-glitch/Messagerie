@@ -15,7 +15,7 @@ import {
 import { PROJECT_FILES } from '../data/projectFiles.ts';
 
 export default function HackathonDossier() {
-  const [activePiece, setActivePiece] = useState<number>(1);
+  const [activePiece, setActivePiece] = useState<number>(2);
   const [copied, setCopied] = useState<number | null>(null);
 
   const handleCopy = (text: string, pieceNum: number) => {
@@ -25,14 +25,6 @@ export default function HackathonDossier() {
   };
 
   const piecesMeta = [
-    {
-      num: 1,
-      title: 'Fiche équipe',
-      file: '01_FICHE_EQUIPE.md',
-      desc: 'Identification de l\'équipe, université, membres, filière, niveau d\'études, contacts et attestations.',
-      icon: Users,
-      badge: 'Obligatoire',
-    },
     {
       num: 2,
       title: 'Note de pré-projet',
@@ -79,17 +71,17 @@ export default function HackathonDossier() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-              DOSSIER DE CANDIDATURE OFFICIEL
+              DOSSIER TECHNIQUE OFFICIEL
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              5 PIÈCES CONFORMES
+              4 PIÈCES TECHNIQUES CONFORMES
             </span>
           </div>
           <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-            <span>Dossier Complet de Soumission — Hackathon 2026-2027</span>
+            <span>Dossier Technique de Soumission — Hackathon 2026-2027</span>
           </h2>
           <p className="text-slate-300 text-sm max-w-3xl mt-1 leading-relaxed">
-            L'ensemble des cinq (05) pièces réglementaires requises pour l'évaluation et le dépôt officiel de la solution FasoMatrix. Rédigées selon les consignes strictes de format et de sécurité.
+            L'ensemble des pièces techniques réglementaires requises pour l'évaluation et l'audit officiel de la solution FasoMatrix. Rédigées selon les consignes strictes de format et de sécurité.
           </p>
         </div>
 
@@ -105,8 +97,8 @@ export default function HackathonDossier() {
         </div>
       </div>
 
-      {/* Navigation entre les 5 pièces */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* Navigation entre les 4 pièces */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {piecesMeta.map(p => {
           const Icon = p.icon;
           const isActive = activePiece === p.num;

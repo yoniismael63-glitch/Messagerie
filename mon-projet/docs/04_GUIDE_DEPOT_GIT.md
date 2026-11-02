@@ -57,8 +57,14 @@ git commit -m "feat(auth): implémentation de la révocation multi-appareils imm
 # ------------------------------------------------------------------------------
 # COMMIT 5 : Audit de non-fuite en clair et documentation de sécurité (Jour 2)
 # ------------------------------------------------------------------------------
-git add scripts/verify_no_cleartext.* docs/ README.md
-git commit -m "docs(audit): script d'audit anti-clair PostgreSQL et notes techniques régaliennes"
+git add scripts/verify_no_cleartext.* scripts/backup.* scripts/restore.* scripts/purge_room.* docs/01_* docs/02_* docs/03_* docs/SECURITY.md
+git commit -m "docs(audit): script d'audit anti-clair PostgreSQL, procédures de backup/restore et notes régaliennes"
+
+# ------------------------------------------------------------------------------
+# COMMIT 6 : Actes de service chiffrés, Bot d'escalade et Suppléance (Jour 3)
+# ------------------------------------------------------------------------------
+git add bot/ scripts/send_acte.* scripts/send_ack.* scripts/delegate_role.* scripts/revoke_delegation.* scripts/list_actes.* scripts/list_delegations.* scripts/seed_acte_demo.* docs/04_* docs/05_* docs/MANUEL_* docs/GUIDE_* README.md
+git commit -m "feat(actes-service): implémentation des actes chiffrés, bot d'escalade aveugle, accusé SHA-256 et suppléance"
 ```
 
 ---
@@ -79,7 +85,9 @@ git push -u origin main
 
 ### Résultat attendu :
 Sur votre page GitHub :
-1. Vous avez un magnifique historique de **5 commits clairs et professionnels** illustrant l'avancement du sprint (Jour 1 et Jour 2).
-2. Aucun fichier sensible `.env` n'a été publié (grâce au `.gitignore`).
-3. Le lien à fournir au jury dans votre dossier de candidature est :  
+1. Vous avez un magnifique historique de **6 commits clairs, standardisés (Conventional Commits) et professionnels** illustrant l'avancement complet du sprint (Jour 1, Jour 2 et Jour 3).
+2. Aucun fichier sensible `.env` ni clé privée n'a été publié (grâce au `.gitignore` renforcé).
+3. La page d'accueil GitHub affiche automatiquement le `README.md` principal avec l'arborescence, les liens vers les 5 pièces du concours, le manuel fonctionnel et le guide pédagogique.
+4. Le lien à fournir au jury dans votre dossier de candidature est :  
    👉 **`https://github.com/votre-nom/fasomatrix-souverain`**
+
