@@ -10,7 +10,7 @@ param(
     [string]$Duree = "10m"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $baseUrl = "http://localhost"
 $serverName = "localhost"
 $coordinationId = ""

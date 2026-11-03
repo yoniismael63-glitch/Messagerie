@@ -35,7 +35,6 @@ L'ensemble des notes techniques d'évaluation et de sécurité exigées par les 
 | **Pièce 2 : Note de Pré-Projet** | Synthèse exécutive (2 pages) : vision, architecture technique, souveraineté et licences open source. | [📄 02_NOTE_DE_PRE_PROJET.md](mon-projet/docs/02_NOTE_DE_PRE_PROJET.md) |
 | **Pièce 3 : Note de Sécurité** | Modèle de menace STRIDE, analyse cryptographique E2EE, isolation réseau et limites documentées. | [📄 03_NOTE_DE_SECURITE.md](mon-projet/docs/03_NOTE_DE_SECURITE.md) |
 | **Pièce 4 : Guide Dépôt Git** | Protocole d'audit du dépôt Git, traçabilité des commits et intégrité de l'historique. | [📄 04_GUIDE_DEPOT_GIT.md](mon-projet/docs/04_GUIDE_DEPOT_GIT.md) |
-| **Pièce 5 : Storyboard Vidéo** | Déroulé chronométré de 3 minutes pour la soutenance vidéo devant le jury. | [📄 05_STORYBOARD_VIDEO_3MIN.md](mon-projet/docs/05_STORYBOARD_VIDEO_3MIN.md) |
 | **Politique de Sécurité (SECURITY)** | Règles de divulgation, analyse de révocation Synapse et matrice des privilèges. | [🛡️ SECURITY.md](mon-projet/docs/SECURITY.md) |
 
 ---
@@ -55,7 +54,6 @@ fasomatrix/
 │   │   ├── 02_NOTE_DE_PRE_PROJET.md
 │   │   ├── 03_NOTE_DE_SECURITE.md
 │   │   ├── 04_GUIDE_DEPOT_GIT.md
-│   │   ├── 05_STORYBOARD_VIDEO_3MIN.md
 │   │   └── SECURITY.md
 │   ├── element/                  # Client Web Sécurisé Element
 │   │   └── config.json           # Configuration personnalisée FasoMatrix

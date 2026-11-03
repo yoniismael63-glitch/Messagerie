@@ -46,7 +46,7 @@ register_user() {
     local u="$1"
     local p="$2"
     local is_adm="$3"
-    local adm_flag=""
+    local adm_flag="--no-admin"
     if [ "$is_adm" = "true" ]; then adm_flag="-a"; fi
     echo "[*] Création du compte @${u}:${SERVER_NAME}..."
     docker compose exec -T synapse register_new_matrix_user \

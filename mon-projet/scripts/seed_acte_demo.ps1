@@ -31,13 +31,46 @@ Write-Host "====================================================================
 Write-Host "   INITIALISATION DU SOCLE ACTES DE SERVICE & SUPPLÉANCE (JOUR 3)" -ForegroundColor Cyan
 Write-Host "==============================================================================" -ForegroundColor Cyan
 
+# 0. Attente de la disponibilité de Synapse
+Write-Host "[*] Verification de la disponibilite du conteneur Synapse sur $baseUrl..." -ForegroundColor Yellow
+$maxRetries = 20
+$retries = 0
+$synapseReady = $false
+while (-not $synapseReady -and $retries -lt $maxRetries) {
+    try {
+        $check = Invoke-RestMethod -Uri "$baseUrl/_matrix/client/versions" -Method Get -TimeoutSec 3 -ErrorAction SilentlyContinue
+        if ($check.versions) {
+            $synapseReady = $true
+            Write-Host "    [SUCCES] Synapse operationnel et pret." -ForegroundColor Green
+        }
+    } catch {
+        $retries++
+        Write-Host "    -> En attente de Synapse (tentative $retries/$maxRetries)..." -ForegroundColor DarkGray
+        Start-Sleep -Seconds 2
+    }
+}
+
+if (-not $synapseReady) {
+    Write-Host "    [ATTENTION] Synapse n'a pas repondu en 40s. Verification de l'etat Docker..." -ForegroundColor Yellow
+    docker compose ps
+}
+
 # 1. Création agent3 et bot
 function Register-User {
     param($u, $p, [bool]$adm)
     Write-Host "[*] Création du compte @${u}:${serverName}..."
-    $admFlag = if ($adm) { "-a" } else { "" }
-    $cmd = "docker compose exec -T synapse register_new_matrix_user -u $u -p $p $admFlag -c /data/homeserver.yaml"
-    Invoke-Expression $cmd 2>&1 | Out-Null
+    $admFlag = if ($adm) { "-a" } else { "--no-admin" }
+    try {
+        $cmd = "docker compose exec -T synapse register_new_matrix_user -u $u -p $p $admFlag -c /data/homeserver.yaml"
+        $res = Invoke-Expression $cmd 2>&1 | Out-String
+        if ($res -match "already exists|already taken") {
+            Write-Host "    [INFO] Le compte '$u' existe deja." -ForegroundColor DarkGray
+        } elseif ($res -match "success") {
+            Write-Host "    [SUCCES] Compte '$u' cree avec succes." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "    [INFO] Inscription traitee : $($_.Exception.Message)" -ForegroundColor DarkGray
+    }
 }
 
 Register-User -u "agent3" -p "Agent3Secret2026!" -adm $false
@@ -94,13 +127,36 @@ try {
     Invoke-RestMethod -Uri "$baseUrl/_matrix/client/v3/rooms/$adminRoom/join" -Method Post -Headers @{ Authorization = "Bearer $botToken" } | Out-Null
 } catch {}
 
-# Mise à jour .env
+# Mise a jour .env garantie (mise a jour ou ajout en fin de fichier)
 if (Test-Path ".env") {
-    $c = Get-Content ".env"
-    $c = $c -replace "^COORDINATION_ROOM_ID=.*", "COORDINATION_ROOM_ID=$coordRoom"
-    $c = $c -replace "^ADMIN_ROOM_ID=.*", "ADMIN_ROOM_ID=$adminRoom"
-    $c = $c -replace "^ACTES_SERVICE_ROOM_ID=.*", "ACTES_SERVICE_ROOM_ID=$serviceRoom"
-    Set-Content ".env" $c
+    $envLines = [System.IO.File]::ReadAllLines((Resolve-Path ".env"))
+    $keysToSet = @{
+        "COORDINATION_ROOM_ID" = $coordRoom
+        "ADMIN_ROOM_ID" = $adminRoom
+        "ACTES_SERVICE_ROOM_ID" = $serviceRoom
+    }
+    $updatedKeys = @{}
+    $newLines = @()
+    foreach ($line in $envLines) {
+        $replaced = $false
+        foreach ($k in $keysToSet.Keys) {
+            if ($line -match "^$k\s*=") {
+                $newLines += "$k=$($keysToSet[$k])"
+                $updatedKeys[$k] = $true
+                $replaced = $true
+                break
+            }
+        }
+        if (-not $replaced) {
+            $newLines += $line
+        }
+    }
+    foreach ($k in $keysToSet.Keys) {
+        if (-not $updatedKeys[$k]) {
+            $newLines += "$k=$($keysToSet[$k])"
+        }
+    }
+    [System.IO.File]::WriteAllLines((Resolve-Path ".env"), $newLines)
 }
 
 Write-Host "`n==============================================================================" -ForegroundColor Green

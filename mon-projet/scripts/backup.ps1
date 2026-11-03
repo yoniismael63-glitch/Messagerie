@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param()
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $rootDir = Split-Path -Parent $scriptDir
@@ -51,13 +51,19 @@ Write-Host "      -> Base relationnelle exportee avec succes." -ForegroundColor 
 # 2. Clé cryptographique Ed25519
 Write-Host "[2/4] Extraction de la cle Ed25519 (/data/$serverName.signing.key)..." -ForegroundColor Yellow
 $keyFile = Join-Path $backupDir "$serverName.signing.key"
-docker compose exec -T synapse cat "/data/$serverName.signing.key" | Out-File -FilePath $keyFile -Encoding utf8
+docker compose cp "synapse:/data/$serverName.signing.key" $keyFile 2>$null
+if (-not (Test-Path $keyFile)) {
+    docker compose exec -T synapse cat "/data/$serverName.signing.key" | Set-Content -Path $keyFile -Encoding Ascii
+}
 Write-Host "      -> Cle de signature serveur sauvegardee." -ForegroundColor Green
 
 # 3. Configuration et .env
 Write-Host "[3/4] Archivage des fichiers de configuration..." -ForegroundColor Yellow
 $hsFile = Join-Path $backupDir "homeserver.yaml"
-docker compose exec -T synapse cat "/data/homeserver.yaml" | Out-File -FilePath $hsFile -Encoding utf8
+docker compose cp "synapse:/data/homeserver.yaml" $hsFile 2>$null
+if (-not (Test-Path $hsFile)) {
+    docker compose exec -T synapse cat "/data/homeserver.yaml" | Set-Content -Path $hsFile -Encoding Ascii
+}
 Copy-Item ".env" (Join-Path $backupDir ".env.backup")
 Write-Host "      -> homeserver.yaml et .env archives." -ForegroundColor Green
 

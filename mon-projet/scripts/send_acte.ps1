@@ -9,7 +9,7 @@ param(
     [string]$Deadline = "+2m"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $baseUrl = "http://localhost"
 $serverName = "localhost"
 $actesServiceId = ""

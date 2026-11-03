@@ -49,14 +49,6 @@ export default function HackathonDossier() {
       icon: GitBranch,
       badge: 'Git Public',
     },
-    {
-      num: 5,
-      title: 'Vidéo de démonstration',
-      file: '05_STORYBOARD_VIDEO_3MIN.md',
-      desc: 'Trois (03) minutes max : échange chiffré, révocation multi-appareils, acte de service, hash SHA-256 et suppléance.',
-      icon: Video,
-      badge: 'Max 3 minutes',
-    },
   ];
 
   // Trouver le contenu du fichier dans PROJECT_FILES

@@ -97,29 +97,41 @@ if (Test-Path $sqlFile) {
 Write-Host "[4/5] Restauration de la cle de signature Ed25519..." -ForegroundColor Yellow
 $keyFile = Join-Path $BackupPath "$serverName.signing.key"
 if (Test-Path $keyFile) {
+    # Nettoyer d'éventuels octets BOM UTF-8 Windows (0xEF, 0xBB, 0xBF)
+    $rawBytes = [System.IO.File]::ReadAllBytes($keyFile)
+    if ($rawBytes.Length -ge 3 -and $rawBytes[0] -eq 0xEF -and $rawBytes[1] -eq 0xBB -and $rawBytes[2] -eq 0xBF) {
+        $cleanBytes = $rawBytes[3..($rawBytes.Length - 1)]
+        [System.IO.File]::WriteAllBytes($keyFile, $cleanBytes)
+    }
     docker compose cp $keyFile synapse:/data/
-    Write-Host "      -> Cle Ed25519 restauree." -ForegroundColor Green
+    Write-Host "      -> Cle Ed25519 restauree et certifiee sans BOM." -ForegroundColor Green
 }
 
 # 5. Redémarrer Synapse
 Write-Host "[5/5] Redemarrage du conteneur Synapse..." -ForegroundColor Yellow
 docker compose start synapse
 
-Write-Host "[INFO] Verification de la disponibilite de Synapse..." -ForegroundColor Cyan
+Write-Host "[INFO] Verification de la disponibilite de Synapse sur $baseUrl..." -ForegroundColor Cyan
 $retries = 0
-$maxRetries = 20
+$maxRetries = 25
+$synapseUp = $false
 while ($retries -lt $maxRetries) {
     try {
-        $res = Invoke-WebRequest -Uri "http://localhost/_matrix/client/versions" -UseBasicParsing -TimeoutSec 3 -ErrorAction SilentlyContinue
-        if ($res.StatusCode -eq 200) {
-            Write-Host "[SUCCES] Synapse operationnel (HTTP 200) !" -ForegroundColor Green
+        $res = Invoke-RestMethod -Uri "$baseUrl/_matrix/client/versions" -Method Get -TimeoutSec 3 -ErrorAction SilentlyContinue
+        if ($res.versions) {
+            $synapseUp = $true
+            Write-Host "[SUCCES] Synapse operationnel et pret !" -ForegroundColor Green
             break
         }
     } catch {
-        # ignore wait
+        # en attente de Synapse
     }
     $retries++
     Start-Sleep -Seconds 2
+}
+
+if (-not $synapseUp) {
+    Write-Host "[ATTENTION] Synapse redémarre encore. Vérifiez les logs avec : docker compose logs synapse" -ForegroundColor Yellow
 }
 
 Write-Host "================================================================================" -ForegroundColor Cyan

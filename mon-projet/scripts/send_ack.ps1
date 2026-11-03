@@ -8,7 +8,7 @@ param(
     [string]$ActeId = ""
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $baseUrl = "http://localhost"
 $serverName = "localhost"
 $coordinationId = ""

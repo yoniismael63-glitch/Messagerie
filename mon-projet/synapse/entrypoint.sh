@@ -47,13 +47,26 @@ if ! grep -q "report_stats:" "$CONFIG_FILE"; then
     echo "[SUCCES] report_stats: false ajoute a la configuration."
 fi
 
-# Etape 2 : Generation de la cle Ed25519 si absente
-if [ ! -f "$SIGNING_KEY" ]; then
+# Etape 2 : Generation ou assainissement de la cle Ed25519
+if [ -f "$SIGNING_KEY" ]; then
+    python3 -c '
+key_path = "'"$SIGNING_KEY"'"
+try:
+    with open(key_path, "rb") as f:
+        content = f.read()
+    clean = content.lstrip(b"\xef\xbb\xbf").replace(b"\r\n", b"\n")
+    if clean != content:
+        with open(key_path, "wb") as f:
+            f.write(clean)
+        print("[INFO] Cle Ed25519 assainie (BOM UTF-8 et CRLF purges).")
+except Exception as e:
+    pass
+'
+    echo "[INFO] Cle Ed25519 validee : ${SIGNING_KEY}."
+else
     echo "[INFO] Cle de signature locale ${SIGNING_KEY} absente : generation Ed25519..."
     python3 -m synapse.app.homeserver --generate-keys -c "$CONFIG_FILE"
     echo "[SUCCES] Cle Ed25519 generee localement."
-else
-    echo "[INFO] Cle Ed25519 validee : ${SIGNING_KEY}."
 fi
 
 # Etape 3 : Lancement du serveur Synapse
